@@ -1,0 +1,10 @@
+{
+  "name": "whatiwillido",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "twine:setup": "bash scripts/setup-twine.sh",
+    "build": "npm run twine:setup && mkdir -p dist && TWEEGO_PATH=.tweego/storyformats tweego -f sugarcube-2 -o dist/story.html src",
+    "watch": "npm run twine:setup && mkdir -p dist && TWEEGO_PATH=.tweego/storyformats tweego -w -f sugarcube-2 -o dist/story.html src"
+  }
+}
