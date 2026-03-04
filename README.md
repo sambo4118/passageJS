@@ -23,4 +23,7 @@ This will:
 
 ## JavaScript in Twine
 
-Put your story JS in the `Story JavaScript` passage in `src/story.twee`.
+Put story JS in separate `.js` files inside `src/` (for example `src/story.js`).
+Tweego automatically bundles `.js` files, so passages can call those functions directly.
+
+You can still use a `Story JavaScript` passage if you prefer, but it is optional.
