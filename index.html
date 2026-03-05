@@ -9,9 +9,69 @@
         margin: 0;
         padding: 24px;
         background: #101114;
+        color: #e8e8e8;
+        font-family: system-ui, -apple-system, sans-serif;
+        line-height: 1.6;
+      }
+      
+      a {
+        color: #6eb5ff;
+        text-decoration: none;
+      }
+      
+      a:hover {
+        text-decoration: underline;
+      }
+      
+      /* Animation styles */
+      .fade-in {
+        animation: fadeIn 1s ease-in;
+      }
+      
+      @keyframes fadeIn {
+        from { opacity: 0; }
+        to { opacity: 1; }
+      }
+      
+      .delayed {
+        opacity: 0;
+        animation: delayedReveal 0.3s ease-in forwards;
+      }
+      
+      @keyframes delayedReveal {
+        to { opacity: 1; }
+      }
+      
+      .wiggle {
+        display: inline-block;
+      }
+      
+      .wiggle > span {
+        display: inline-block;
+        animation: wiggle 0.4s ease-in-out infinite;
+      }
+      
+      @keyframes wiggle {
+        0% { transform: translate(0, 0) rotate(0deg); }
+        10% { transform: translate(-1px, 1px) rotate(-2deg); }
+        20% { transform: translate(1px, -1px) rotate(1deg); }
+        30% { transform: translate(-1px, -0.5px) rotate(-1deg); }
+        40% { transform: translate(1px, 1px) rotate(2deg); }
+        50% { transform: translate(-0.5px, 1px) rotate(-1deg); }
+        60% { transform: translate(1px, -1px) rotate(1deg); }
+        70% { transform: translate(-1px, 0.5px) rotate(-2deg); }
+        80% { transform: translate(0.5px, -1px) rotate(1deg); }
+        90% { transform: translate(-1px, 1px) rotate(-1deg); }
+        100% { transform: translate(0, 0) rotate(0deg); }
+      }
+      
+      .typewriter {
+        overflow: hidden;
+        white-space: nowrap;
+        display: inline-block;
       }
     </style>
-    <script src="./render.js"></script>
+    <script type="module" src="./render.js"></script>
   </head>
   <body>
     <div id="display"></div>
