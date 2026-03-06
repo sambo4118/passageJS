@@ -280,14 +280,29 @@ You can nest macros and markdown for complex effects:
 
 ## Transitions
 
-Transitions are optional passages that play between two specific passages.
+Transitions are optional passages that play between two specific passages when using random group links (`group/*`). They create smooth narrative bridges between randomly selected content.
 
-**File naming:** `T-fromID-toID.psg`
+**How it works:**
+- Only triggered by random group links (e.g., `[[Next|example/title/*]]`)
+- System checks current passage's group for: `transitions/T-currentPassageID-selectedPassageID.psg`
+- If transition exists: plays transition first, then navigates to selected passage
+- If not found: navigates directly to the randomly selected passage
 
-Example: Going from `quickstart_landing` to `usage_landing`:
-- System checks for: `passages/quickstart/transitions/T-landing-landing.psg`
-- If found: plays transition, then goes to destination
-- If not found: goes directly to destination
+**File structure:**
+```
+passages/
+  menu/
+    title-screen.psg
+    transitions/
+      T-title-screen-main-menu-1.psg
+      T-title-screen-main-menu-2.psg
+```
+
+**Example:** From `menu/title-screen` clicking `[[Start|example/title/*]]`:
+1. System randomly picks `example/title/main-menu-1`
+2. Checks for: `menu/transitions/T-title-screen-main-menu-1.psg`
+3. If found: shows transition → then shows main-menu-1
+4. If not: shows main-menu-1 directly
 
 ## Manifest Files
 

@@ -20,7 +20,7 @@ const gameState = {
     previousPassage: null
 };
 
-function saveGame(slotName = 'autosave') {
+export function saveGame(slotName = 'autosave') {
     const saveData = {
         currentPassage: gameState.currentPassage,
         previousPassage: gameState.previousPassage,
@@ -39,7 +39,7 @@ function saveGame(slotName = 'autosave') {
     }
 }
 
-async function loadGame(slotName = 'autosave') {
+export async function loadGame(slotName = 'autosave') {
     try {
         const saveDataStr = localStorage.getItem(`passagejs_save_${slotName}`);
         if (!saveDataStr) {
@@ -64,7 +64,7 @@ async function loadGame(slotName = 'autosave') {
     }
 }
 
-function getSaveSlots() {
+export function getSaveSlots() {
     const saves = [];
     for (let i = 0; i < localStorage.length; i++) {
         const key = localStorage.key(i);
@@ -82,7 +82,7 @@ function getSaveSlots() {
     return saves.sort((a, b) => b.timestamp - a.timestamp);
 }
 
-function deleteSave(slotName) {
+export function deleteSave(slotName) {
     localStorage.removeItem(`passagejs_save_${slotName}`);
     console.log(`Deleted save slot: ${slotName}`);
 }
@@ -239,7 +239,7 @@ async function renderPassage(passageName) {
 
         saveGame('autosave');
 
-        preloadLinkedPassages(processedMarkup);
+        preloadLinkedPassages(html);
         return true;
     } catch (error) {
         const message = error instanceof Error ? error.message : String(error);
@@ -301,20 +301,17 @@ function parseInlineMarkdown(text) {
 }
 
 function parseBackgroundColor(text) {
-    const bgMacros = extractBetweenDelimiter(text, '<<bgcolor', '>>');
+    const bgPattern = /<<bgcolor\s+color=["']([^"']+)["']\s*>>/g;
+    let foundColor = false;
     
-    if (bgMacros.length === 0) {
+    text = text.replace(bgPattern, (match, color) => {
+        document.body.style.backgroundColor = color;
+        foundColor = true;
+        return '';
+    });
+    
+    if (!foundColor) {
         document.body.style.backgroundColor = '#101114';
-        return text;
-    }
-    
-    for (const macro of bgMacros) {
-        const colorMatch = macro.content.match(/color=["']([^"']+)["']/);
-        if (colorMatch) {
-            const color = colorMatch[1];
-            document.body.style.backgroundColor = color;
-        }
-        text = text.replace(macro.fullMatch, '');
     }
     
     return text;
@@ -635,7 +632,7 @@ function parseLinks(text, currentPassageName) {
         const hasExplicitTarget = separatorIndex !== -1;
         const linkText = hasExplicitTarget ? link.content.slice(0, separatorIndex).trim() : link.content.trim();
         const targetValue = hasExplicitTarget ? link.content.slice(separatorIndex + 1).trim() : link.content.trim();
-        const tokenPattern = /^[A-Za-z0-9][A-Za-z0-9_\/-]*$/;
+        const tokenPattern = /^[A-Za-z0-9][A-Za-z0-9_\/*-]*$/;
 
         if (!hasExplicitTarget && !tokenPattern.test(targetValue)) {
             result = result.replace(link.fullMatch, linkText);
@@ -718,23 +715,12 @@ async function selectTransitionForRandomLink(currentPassage, selectedPassage) {
 
     const currentInfo = splitPassageReference(currentPassage);
     const selectedInfo = splitPassageReference(selectedPassage);
-    if (currentInfo.rootGroup !== selectedInfo.rootGroup) {
-        return null;
-    }
 
     const transitionName = `T-${transitionTokenFromPassage(currentPassage)}-${transitionTokenFromPassage(selectedPassage)}`;
-    const candidateGroups = Array.from(new Set([
-        currentInfo.rootGroup,
-        currentInfo.groupPath,
-        selectedInfo.groupPath
-    ]));
-
-    for (const groupPath of candidateGroups) {
-        const transitionReference = `${groupPath}/transitions/${transitionName}`;
-        const response = await fetch(getPassagePath(transitionReference), { method: 'HEAD' });
-        if (response.ok) {
-            return transitionReference;
-        }
+    const transitionReference = `${currentInfo.groupPath}/transitions/${transitionName}`;
+    const response = await fetch(getPassagePath(transitionReference), { method: 'HEAD' });
+    if (response.ok) {
+        return transitionReference;
     }
 
     return null;
@@ -782,10 +768,11 @@ function triggerNextAutoOnclickReveal() {
 }
 
 document.addEventListener('click', async (click) => {
-    if (click.target.classList.contains('passage-link')) {
+    const linkElement = click.target.closest('.passage-link');
+    if (linkElement) {
         click.preventDefault();
         try {
-            const targetPassage = await handleLinkClick(click.target);
+            const targetPassage = await handleLinkClick(linkElement);
             if (targetPassage) {
                 await renderPassage(targetPassage);
             }
