@@ -211,35 +211,42 @@ function restoreCodeBlocks(text, codeBlocks) {
 }
 
 async function renderPassage(passageName) {
-    const rawText = await loadPassage(passageName);
-    
-    const { marked } = await import('https://cdn.jsdelivr.net/npm/marked@11/+esm');
-    window.marked = marked;
+    try {
+        const { canonicalReference, parsedText } = await loadPassage(passageName);
 
-    const processedMarkup = processPassageMarkup(rawText, {
-        currentPassageName: passageName,
-        state: { onclickRevealCounter: 0 }
-    });
-    const html = marked.parse(processedMarkup);
-    
-    displayMainHTML(html);
-    
-    if (window.hljs) {
-        document.querySelectorAll('pre code').forEach((block) => {
-            window.hljs.highlightElement(block);
+        const { marked } = await import('https://cdn.jsdelivr.net/npm/marked@11/+esm');
+        window.marked = marked;
+
+        const processedMarkup = processPassageMarkup(parsedText, {
+            currentPassageName: canonicalReference,
+            state: { onclickRevealCounter: 0 }
         });
+        const html = marked.parse(processedMarkup);
+
+        displayMainHTML(html);
+
+        if (window.hljs) {
+            document.querySelectorAll('pre code').forEach((block) => {
+                window.hljs.highlightElement(block);
+            });
+        }
+
+        window.activateAnimations();
+
+        gameState.previousPassage = gameState.currentPassage;
+        gameState.currentPassage = canonicalReference;
+        gameState.visitedPassages.add(canonicalReference);
+
+        saveGame('autosave');
+
+        preloadLinkedPassages(processedMarkup);
+        return true;
+    } catch (error) {
+        const message = error instanceof Error ? error.message : String(error);
+        showNavigationError('Unable to open passage.', message);
+        console.error('Render passage failed:', error);
+        return false;
     }
-
-    window.activateAnimations();
-    
-
-    gameState.previousPassage = gameState.currentPassage;
-    gameState.currentPassage = passageName;
-    gameState.visitedPassages.add(passageName);
-    
-    saveGame('autosave');
-    
-    preloadLinkedPassages(processedMarkup);
 }
 
 const MAX_MACRO_RECURSION_DEPTH = 20;
@@ -532,123 +539,135 @@ window.activateAnimations = function() {
 }
 
 // Passage linking and navigation helpers.
-function getManifestPathForGroup(groupName) {
-    const groupParts = groupName.split("_");
-    const rootGroup = groupParts[0];
-    const subgroupParts = groupParts.slice(1);
-
-    if (subgroupParts.length === 0) {
-        return `./passages/${rootGroup}/manifest.json`;
-    }
-
-    return `./passages/${rootGroup}/${subgroupParts.join("/")}/manifest.json`;
+function escapeHtml(value) {
+    return String(value)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
 }
 
-
-function getPassagePath(passageName) {
-    const firstUnderscore = passageName.indexOf("_");
-    const groupName = firstUnderscore === -1 ? "" : passageName.slice(0, firstUnderscore);
-    const fileID = firstUnderscore === -1 ? "" : passageName.slice(firstUnderscore + 1);
-
-    if (!groupName || !fileID) {
-        throw new Error(`Invalid passage name: ${passageName}`);
-    }
-    
-    if (fileID.startsWith("transition_")) {
-        const transitionFileID = fileID.slice("transition_".length);
-        return `./passages/${groupName}/transitions/${transitionFileID}.psg`;
-    } else {
-        return `./passages/${groupName}/${fileID}.psg`;
-    }
+function normalizeSlashes(value) {
+    return String(value || '').replace(/\\/g, '/').replace(/^\/+|\/+$/g, '');
 }
 
-function getCandidatePassagePaths(passageName) {
-    const primaryPath = getPassagePath(passageName);
-    const firstUnderscore = passageName.indexOf("_");
-    const fileID = firstUnderscore === -1 ? "" : passageName.slice(firstUnderscore + 1);
+function splitPassageReference(reference) {
+    const normalized = normalizeSlashes(reference);
+    const parts = normalized.split('/').filter(Boolean);
 
-    if (!fileID || fileID.startsWith("transition_") || fileID.includes("/")) {
-        return [primaryPath];
+    if (parts.length < 2) {
+        throw new Error(`Invalid passage reference "${reference}". Use group/.../passage.`);
     }
 
-    if (!fileID.includes("_")) {
-        return [primaryPath];
+    return {
+        parts,
+        groupPath: parts.slice(0, -1).join('/'),
+        fileName: parts[parts.length - 1],
+        rootGroup: parts[0]
+    };
+}
+
+function normalizePassageReference(reference, currentGroupPath = '') {
+    const source = normalizeSlashes(reference).trim();
+
+    if (!source) {
+        throw new Error('Passage reference is empty.');
     }
 
-    const groupName = passageName.slice(0, firstUnderscore);
-    const nestedPath = `./passages/${groupName}/${fileID.replace(/_/g, "/")}.psg`;
-
-    if (nestedPath === primaryPath) {
-        return [primaryPath];
+    if (source.includes('/')) {
+        const parts = source.split('/').filter(Boolean);
+        if (parts.length < 2) {
+            throw new Error(`Invalid passage reference "${reference}". Use group/.../passage.`);
+        }
+        return parts.join('/');
     }
 
-    return [nestedPath, primaryPath];
+    const normalizedCurrentGroup = normalizeSlashes(currentGroupPath);
+    if (!normalizedCurrentGroup) {
+        throw new Error(`Relative passage reference "${reference}" has no current group context.`);
+    }
+
+    return `${normalizedCurrentGroup}/${source}`;
+}
+
+function getPassagePath(reference) {
+    return `./passages/${reference}.psg`;
+}
+
+function getManifestPath(groupPath) {
+    return `./passages/${groupPath}/manifest.json`;
+}
+
+function transitionTokenFromPassage(reference) {
+    const { parts } = splitPassageReference(reference);
+    return parts.slice(1).join('_');
+}
+
+function showNavigationError(message, details = '') {
+    const detailText = details ? `<p><code>${escapeHtml(details)}</code></p>` : '';
+    displayMainHTML(`<section class="passage-error"><h2>Navigation Error</h2><p>${escapeHtml(message)}</p>${detailText}</section>`);
 }
 
 async function loadPassage(passageName) {
-    const candidatePaths = getCandidatePassagePaths(passageName);
-    let lastAttemptedPath = candidatePaths[0];
+    const canonicalReference = normalizePassageReference(passageName);
+    const filePath = getPassagePath(canonicalReference);
+    const response = await fetch(filePath);
 
-    for (const filePath of candidatePaths) {
-        lastAttemptedPath = filePath;
-        const response = await fetch(filePath);
-        if (response.ok) {
-            const passageText = await response.text();
-            return parseLinks(passageText, passageName);
-        }
+    if (!response.ok) {
+        throw new Error(`Passage not found: ${canonicalReference} (${filePath})`);
     }
 
-    throw new Error(`Failed to load ${lastAttemptedPath}`);
+    const passageText = await response.text();
+    return {
+        canonicalReference,
+        parsedText: parseLinks(passageText, canonicalReference)
+    };
 }
 
 function parseLinks(text, currentPassageName) {
     const links = extractBetweenDelimiter(text, "[[", "]]");
     let result = text;
-    const currentGroup = currentPassageName ? currentPassageName.split("_")[0] : '';
+    const currentGroupPath = currentPassageName ? splitPassageReference(currentPassageName).groupPath : '';
 
     for (const link of links) {
-        const hasExplicitTarget = link.content.includes("|");
-        const [displayText, target] = link.content.split("|").map(part => part.trim());
-        const linkText = target ? displayText : link.content;
-        let targetValue = target || link.content;
-
+        const separatorIndex = link.content.indexOf('|');
+        const hasExplicitTarget = separatorIndex !== -1;
+        const linkText = hasExplicitTarget ? link.content.slice(0, separatorIndex).trim() : link.content.trim();
+        const targetValue = hasExplicitTarget ? link.content.slice(separatorIndex + 1).trim() : link.content.trim();
         const tokenPattern = /^[A-Za-z0-9][A-Za-z0-9_\/-]*$/;
+
         if (!hasExplicitTarget && !tokenPattern.test(targetValue)) {
             result = result.replace(link.fullMatch, linkText);
             continue;
         }
-        
-        // Handle @back special link
-        if (targetValue === "@back") {
-            const linkHTML = `<a href="#" class="passage-link" 
-                data-type="back">${linkText}</a>`;
-            result = result.replace(link.fullMatch, linkHTML);
+
+        if (!targetValue) {
+            result = result.replace(link.fullMatch, linkText);
             continue;
         }
 
-        const isGroupBased = targetValue.startsWith("@");
-        
-        if (isGroupBased) {
-            const targetGroup = targetValue.substring(1);
-            const currentPassageID = currentPassageName ? currentPassageName.split("_").slice(1).join("_") : '';
-            
-            const linkHTML = `<a href="#" class="passage-link" 
-                data-type="group" 
-                data-group="${targetGroup}" 
-                data-from-group="${currentGroup}" 
-                data-from-id="${currentPassageID}">${linkText}</a>`;
-            result = result.replace(link.fullMatch, linkHTML);
-        } else {
+        try {
+            if (targetValue.endsWith('/*')) {
+                const groupPart = normalizeSlashes(targetValue.slice(0, -2));
+                const resolvedGroup = groupPart || currentGroupPath;
 
-            if (!targetValue.includes("_")) {
+                if (!resolvedGroup) {
+                    throw new Error(`Random target "${targetValue}" has no group context.`);
+                }
 
-                targetValue = `${currentGroup}_${targetValue}`;
+                const linkHTML = `<a href="#" class="passage-link" data-type="random" data-group="${escapeHtml(resolvedGroup)}">${linkText}</a>`;
+                result = result.replace(link.fullMatch, linkHTML);
+                continue;
             }
-            
-            const linkHTML = `<a href="#" class="passage-link" 
-                data-type="direct" 
-                data-target="${targetValue}">${linkText}</a>`;
+
+            const normalizedTarget = normalizePassageReference(targetValue, currentGroupPath);
+            const linkHTML = `<a href="#" class="passage-link" data-type="direct" data-target="${escapeHtml(normalizedTarget)}">${linkText}</a>`;
             result = result.replace(link.fullMatch, linkHTML);
+        } catch (error) {
+            const message = error instanceof Error ? error.message : String(error);
+            const invalidHTML = `<span class="passage-link-error" title="${escapeHtml(message)}">${linkText}</span>`;
+            result = result.replace(link.fullMatch, invalidHTML);
         }
     }
 
@@ -664,111 +683,75 @@ async function preloadLinkedPassages(parsedText) {
         const { type, target, group } = link.dataset;
         
         if (type === 'direct') {
-            const candidatePaths = getCandidatePassagePaths(target);
-
-            if (candidatePaths.length === 1) {
-                fetch(candidatePaths[0]).catch(() => {});
-            }
-        } else if (type === 'group') {
-            fetch(getManifestPathForGroup(group)).catch(() => {});
+            fetch(getPassagePath(target)).catch(() => {});
+        } else if (type === 'random') {
+            fetch(getManifestPath(group)).catch(() => {});
         }
     }
 }
 
-async function selectPassageFromGroup(groupName) {
-    try {
-        // Supports both:
-        // - @groupName (loads passages/groupName/manifest.json)
-        // - @groupName_subdir (loads passages/groupName/subdir/manifest.json)
-        const groupParts = groupName.split("_");
-        const rootGroup = groupParts[0];
-        const subgroupParts = groupParts.slice(1);
-        const subgroupKey = subgroupParts.join("_");
-        const subgroupPath = subgroupParts.join("/");
+async function selectPassageFromGroup(groupPath) {
+    const normalizedGroupPath = normalizeSlashes(groupPath);
+    if (!normalizedGroupPath) {
+        throw new Error('Random group path is empty. Use group/.../* or */* from a passage group.');
+    }
 
-        let candidateIds = [];
+    const manifestPath = getManifestPath(normalizedGroupPath);
+    const response = await fetch(manifestPath);
+    if (!response.ok) {
+        throw new Error(`Group manifest not found: ${manifestPath}`);
+    }
 
-        if (subgroupParts.length > 0) {
-            const subgroupManifestPath = getManifestPathForGroup(groupName);
-            const subgroupResponse = await fetch(subgroupManifestPath);
+    const manifest = await response.json();
+    const passages = Array.isArray(manifest.passages) ? manifest.passages.filter(Boolean) : [];
+    if (passages.length === 0) {
+        throw new Error(`Group "${normalizedGroupPath}" has no passages in manifest.json.`);
+    }
 
-            if (subgroupResponse.ok) {
-                const subgroupManifest = await subgroupResponse.json();
-                const availableLocalIDs = subgroupManifest.passages.filter(id => {
-                    const fullPassageName = `${rootGroup}_${subgroupPath}/${id}`;
-                    return !gameState.visitedPassages.has(fullPassageName);
-                });
+    return `${normalizedGroupPath}/${gameState.rng.pickFrom(passages)}`;
+}
 
-                if (availableLocalIDs.length === 0) {
-                    console.warn(`All passages in group "${groupName}" have been visited`);
-                    return null;
-                }
-
-                const selectedLocalID = gameState.rng.pickFrom(availableLocalIDs);
-                return `${rootGroup}_${subgroupPath}/${selectedLocalID}`;
-            } else {
-                // Compatibility fallback for older repos that only have root manifests.
-                const rootManifest = await fetch(`./passages/${rootGroup}/manifest.json`).then(r => r.json());
-                candidateIds = rootManifest.passages.filter(id => id === subgroupKey || id.startsWith(`${subgroupKey}_`));
-            }
-        } else {
-            const rootManifest = await fetch(`./passages/${rootGroup}/manifest.json`).then(r => r.json());
-            candidateIds = rootManifest.passages;
-        }
-
-        const available = candidateIds.filter(id => {
-            const fullPassageName = `${rootGroup}_${id}`;
-            return !gameState.visitedPassages.has(fullPassageName);
-        });
-        
-        if (available.length === 0) {
-            console.warn(`All passages in group "${groupName}" have been visited`);
-            return null;
-        }
-        
-        const selectedID = gameState.rng.pickFrom(available);
-        return `${rootGroup}_${selectedID}`;
-    } catch (error) {
-        console.error(`Failed to load manifest for group "${groupName}":`, error);
+async function selectTransitionForRandomLink(currentPassage, selectedPassage) {
+    if (!currentPassage || !selectedPassage) {
         return null;
     }
+
+    const currentInfo = splitPassageReference(currentPassage);
+    const selectedInfo = splitPassageReference(selectedPassage);
+    if (currentInfo.rootGroup !== selectedInfo.rootGroup) {
+        return null;
+    }
+
+    const transitionName = `T-${transitionTokenFromPassage(currentPassage)}-${transitionTokenFromPassage(selectedPassage)}`;
+    const candidateGroups = Array.from(new Set([
+        currentInfo.rootGroup,
+        currentInfo.groupPath,
+        selectedInfo.groupPath
+    ]));
+
+    for (const groupPath of candidateGroups) {
+        const transitionReference = `${groupPath}/transitions/${transitionName}`;
+        const response = await fetch(getPassagePath(transitionReference), { method: 'HEAD' });
+        if (response.ok) {
+            return transitionReference;
+        }
+    }
+
+    return null;
 }
 
 async function handleLinkClick(linkElement) {
-    const { type, target, group, fromGroup, fromId } = linkElement.dataset;
-    
-    if (type === "back") {
-        // Go back to previous passage
-        if (gameState.previousPassage) {
-            return gameState.previousPassage;
-        } else {
-            console.warn('No previous passage to go back to');
-            return null;
-        }
-    } else if (type === "direct") {
+    const { type, target, group } = linkElement.dataset;
 
+    if (type === "direct") {
         return target;
-    } else if (type === "group") {
-
+    } else if (type === "random") {
         const selectedPassage = await selectPassageFromGroup(group);
-        if (!selectedPassage) {
-            console.error(`Could not select passage from group "${group}"`);
-            return null;
+        const transitionPassage = await selectTransitionForRandomLink(gameState.currentPassage, selectedPassage);
+        if (transitionPassage) {
+            return transitionPassage;
         }
-        
-        if (fromId && fromGroup) {
-            const selectedID = selectedPassage.split("_").slice(1).join("_");
-            const transitionFileName = `T-${fromId}-${selectedID}`;
-            const transitionPath = `./passages/${fromGroup}/transitions/${transitionFileName}.psg`;
-            
-            try {
-                const response = await fetch(transitionPath, { method: 'HEAD' });
-                if (response.ok) {
-                    return `${fromGroup}_transition_${transitionFileName}`;
-                }
-            } catch (error) {}
-        }
-        
+
         return selectedPassage;
     }
     
@@ -801,9 +784,15 @@ function triggerNextAutoOnclickReveal() {
 document.addEventListener('click', async (click) => {
     if (click.target.classList.contains('passage-link')) {
         click.preventDefault();
-        const targetPassage = await handleLinkClick(click.target);
-        if (targetPassage) {
-            await renderPassage(targetPassage);
+        try {
+            const targetPassage = await handleLinkClick(click.target);
+            if (targetPassage) {
+                await renderPassage(targetPassage);
+            }
+        } catch (error) {
+            const message = error instanceof Error ? error.message : String(error);
+            showNavigationError('Unable to resolve selected link.', message);
+            console.error('Link click failed:', error);
         }
     }
 });
@@ -822,7 +811,7 @@ window.addEventListener('DOMContentLoaded', () => {
     if (hash) {
         renderPassage(hash);
     } else {
-        renderPassage('menu_title-screen');
+        renderPassage('menu/title-screen');
     }
 });
 

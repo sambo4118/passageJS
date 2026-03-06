@@ -127,7 +127,7 @@ git push origin feature/my-new-feature
 
 - **Questions?** Open a GitHub Discussion
 - **Stuck?** Ask in your Pull Request
-- **Found a bug while contributing?** [[Report it|issues_landing]]
+- **Found a bug while contributing?** [[Report it|issues/landing]]
 
 ---
 
@@ -139,5 +139,5 @@ git push origin feature/my-new-feature
 
 ---
 
-[[Back to main menu|@back]]
+[[Back to main menu|menu/title-screen]]
 

@@ -7,10 +7,10 @@
 <<typewriter speed="50">>so I have but one simple question.
 what are you here for?<</typewriter>>
 
-[[to become a contributor| contributor_landing]]  
-[[to use this in my story|usage_landing]]  
-[[to suggest features/report bugs|issues_landing]]  
-[[quickstart guide|quickstart_landing]]
+[[to become a contributor|contributor/landing]]  
+[[to use this in my story|usage/landing]]  
+[[to suggest features/report bugs|issues/landing]]  
+[[quickstart guide|quickstart/landing]]
 
 otherwise here's the general stuff you expect in a readme!
 
@@ -32,7 +32,7 @@ otherwise here's the general stuff you expect in a readme!
 Woah, the page *revealed* something when you clicked?  
 thats crazy <<onclick text="click again">>
 you made it to an example story! congrats, isn't this a great read me?  
-[[**yeah it's awesome!**|@example_title]]  
-[[no! this sucks|example_evil_this-sucks]]
+[[**yeah it's awesome!**|example/title/*]]  
+[[no! this sucks|example/evil/this-sucks]]
 <</onclick>>
 <</onclick>>

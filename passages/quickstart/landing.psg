@@ -75,6 +75,6 @@ Example: `quickstart_landing` loads `passages/quickstart/landing.psg`
 
 otherwise all markdown syntax is supported
 
-all existing macros are cataloged in [[usage|usage_landing]]
+all existing macros are cataloged in [[usage|usage/landing]]
 
-[[Back|@back]]
+[[Back|menu/title-screen]]

@@ -222,12 +222,21 @@ Link to a specific passage:
 ```
 [[Display Text|groupName_passageID]]
 [[Display Text|passageID]]  <!-- Uses current group -->
+
+becomes:
+
+[[Display Text|groupName/passageID]]
+[[Display Text|passageID]]  <!-- Uses current group -->
 ```
 
 ### Random Group Links
 Link to a random passage from a group:
 ```
 [[Display Text|@groupName]]
+
+becomes:
+
+[[Display Text|groupName/*]]
 ```
 
 ### Back Link
@@ -235,6 +244,10 @@ Go back to the previous passage:
 ```
 [[Back|@back]]
 [[@back]]
+
+There is no back keyword now; use an explicit passage path:
+
+[[Back to menu|menu/title-screen]]
 ```
 
 ---
@@ -265,5 +278,5 @@ You can nest macros for complex effects:
 
 ---
 
-[[Back to main menu|@back]]
+[[Back to main menu|menu/title-screen]]
 

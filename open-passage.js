@@ -25,8 +25,8 @@ if (!match) {
 }
 
 const group = match[1];
-const passageId = match[2].replace(/\//g, '_');
-const passageName = `${group}_${passageId}`;
+const passageId = match[2];
+const passageName = `${group}/${passageId}`;
 
 const url = `http://localhost:3000/#${passageName}`;
 
