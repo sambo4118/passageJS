@@ -1,4 +1,3 @@
-// Seeded random number generator for randomized group-based links
 class SeededRandom {
     constructor(seed) {
         this.seed = seed;
@@ -17,12 +16,14 @@ class SeededRandom {
 export const gameState = {
     rng: new SeededRandom(Date.now()),
     visitedPassages: new Set(),
-    currentPassage: null
+    currentPassage: null,
+    previousPassage: null
 };
 
 export function saveGame(slotName = 'autosave') {
     const saveData = {
         currentPassage: gameState.currentPassage,
+        previousPassage: gameState.previousPassage,
         visitedPassages: Array.from(gameState.visitedPassages),
         rngSeed: gameState.rng.seed,
         timestamp: Date.now()
@@ -38,7 +39,6 @@ export function saveGame(slotName = 'autosave') {
     }
 }
 
-// Load game state from localStorage
 export async function loadGame(slotName = 'autosave') {
     try {
         const saveDataStr = localStorage.getItem(`passagejs_save_${slotName}`);
@@ -50,6 +50,7 @@ export async function loadGame(slotName = 'autosave') {
         const saveData = JSON.parse(saveDataStr);
         
         gameState.currentPassage = saveData.currentPassage;
+        gameState.previousPassage = saveData.previousPassage || null;
         gameState.visitedPassages = new Set(saveData.visitedPassages);
         gameState.rng = new SeededRandom(saveData.rngSeed);
         
@@ -63,7 +64,6 @@ export async function loadGame(slotName = 'autosave') {
     }
 }
 
-// Get list of all save slots
 export function getSaveSlots() {
     const saves = [];
     for (let i = 0; i < localStorage.length; i++) {
@@ -137,35 +137,67 @@ export async function loadPassage(passageName) {
     return await response.text();
 }
 
+
+function protectCodeBlocks(text) {
+    const codeBlocks = [];
+    let counter = 0;
+    
+    let result = text.replace(/(```[\s\S]*?```|~~~[\s\S]*?~~~)/g, (match) => {
+        const placeholder = `___CODE_BLOCK_${counter}___`;
+        codeBlocks.push({ placeholder, content: match });
+        counter++;
+        return placeholder;
+    });
+    
+
+    result = result.replace(/(`[^`\n]+?`)/g, (match) => {
+        const placeholder = `___CODE_BLOCK_${counter}___`;
+        codeBlocks.push({ placeholder, content: match });
+        counter++;
+        return placeholder;
+    });
+    
+    return { text: result, codeBlocks };
+}
+
+
+function restoreCodeBlocks(text, codeBlocks) {
+    let result = text;
+    for (const block of codeBlocks) {
+        result = result.replace(block.placeholder, block.content);
+    }
+    return result;
+}
+
 export async function renderPassage(passageName) {
     let text = await loadPassage(passageName);
     
     const { marked } = await import('https://cdn.jsdelivr.net/npm/marked@11/+esm');
     window.marked = marked;
     
-    // Configure marked for syntax highlighting
-    marked.setOptions({
-        highlight: function(code, lang) {
-            if (lang && window.hljs && window.hljs.getLanguage(lang)) {
-                try {
-                    return window.hljs.highlight(code, { language: lang }).value;
-                } catch (err) {}
-            }
-            return code;
-        }
-    });
+    const { text: protectedText, codeBlocks } = protectCodeBlocks(text);
     
-    text = parseBackgroundColor(text);
-    text = parseReveals(text);
-    text = parseAnimations(text);
-    text = parseLinks(text, passageName);
+    let processedText = parseBackgroundColor(protectedText);
+    processedText = parseReveals(processedText);
+    processedText = parseAnimations(processedText);
+    processedText = parseLinks(processedText, passageName);
+    
+    text = restoreCodeBlocks(processedText, codeBlocks);
     
     const html = marked.parse(text);
     
     displayMainHTML(html);
+    
+    if (window.hljs) {
+        document.querySelectorAll('pre code').forEach((block) => {
+            window.hljs.highlightElement(block);
+        });
+    }
 
     window.activateAnimations();
     
+
+    gameState.previousPassage = gameState.currentPassage;
     gameState.currentPassage = passageName;
     gameState.visitedPassages.add(passageName);
     
@@ -189,7 +221,6 @@ function parseBackgroundColor(text) {
         return text;
     }
     
-    // Apply the first bgcolor found
     for (const macro of bgMacros) {
         const colorMatch = macro.content.match(/color=["']([^"']+)["']/);
         if (colorMatch) {
@@ -202,12 +233,10 @@ function parseBackgroundColor(text) {
     return text;
 }
 
-// Parse reveal macros (before animations so animations work inside)
 function parseReveals(text) {
     let result = text;
     let revealCounter = 0;
     
-    // Parse <<reveal text="clickable">>hidden content<</reveal>>
     const reveals = extractBetweenDelimiter(result, '<<reveal', '<</reveal>>');
     for (const macro of reveals) {
         const textMatch = macro.content.match(/text=["']([^"']+)["']>>(.*)/s);
@@ -217,7 +246,6 @@ function parseReveals(text) {
             const currentId = 'reveal-' + revealCounter;
             const nextId = 'reveal-' + (revealCounter + 1);
             
-            // Check if there's another reveal after this
             const hasNext = revealCounter < reveals.length - 1;
             
             let onclick = `var el = document.getElementById('${currentId}'); el.style.display='inline'; el.style.animation='fadeInText 0.3s ease-in'; this.style.display='none'; window.activateAnimations();`;
@@ -234,7 +262,6 @@ function parseReveals(text) {
     return result;
 }
 
-// Parse animation macros
 function parseAnimations(text) {
     let result = text;
     
@@ -265,23 +292,21 @@ function parseAnimations(text) {
     // Parse <<wiggle>>text<</wiggle>>
     const wiggles = extractBetweenDelimiter(result, '<<wiggle>>', '<</wiggle>>');
     for (const macro of wiggles) {
-        // Parse markdown first to get HTML
+
         const htmlContent = parseInlineMarkdown(macro.content);
         
-        // Split into HTML tags and text content
-        // The regex captures tags, and split with capturing group keeps them in the array
         const parts = htmlContent.split(/(<[^>]+>)/);
         
         const processedParts = parts.map(part => {
-            // If it's an HTML tag, keep it as is
+
             if (part.startsWith('<')) {
                 return part;
             }
-            // If it's text content, wrap each character with animation
+
             return part.split('').map(char => {
                 if (char === ' ') return ' ';
-                const randomDelay = Math.random() * 0.3; // Random delay between 0-0.3s
-                const randomDuration = 0.3 + Math.random() * 0.3; // Random duration between 0.3-0.6s
+                const randomDelay = Math.random() * 0.3;
+                const randomDuration = 0.3 + Math.random() * 0.3; 
                 return `<span style="animation-delay: ${randomDelay}s; animation-duration: ${randomDuration}s;">${char}</span>`;
             }).join('');
         });
@@ -399,6 +424,13 @@ export function parseLinks(text, currentPassageName) {
         const linkText = target ? displayText : link.content;
         let targetValue = target || link.content;
         
+        // Handle @back special link
+        if (targetValue === "@back") {
+            const linkHTML = `<a href="#" class="passage-link" 
+                data-type="back">${linkText}</a>`;
+            result = result.replace(link.fullMatch, linkHTML);
+            continue;
+        }
 
         const isGroupBased = targetValue.startsWith("@");
         
@@ -454,7 +486,15 @@ export async function selectPassageFromGroup(groupName) {
 export async function handleLinkClick(linkElement) {
     const { type, target, group, fromGroup, fromId } = linkElement.dataset;
     
-    if (type === "direct") {
+    if (type === "back") {
+        // Go back to previous passage
+        if (gameState.previousPassage) {
+            return gameState.previousPassage;
+        } else {
+            console.warn('No previous passage to go back to');
+            return null;
+        }
+    } else if (type === "direct") {
 
         return target;
     } else if (type === "group") {

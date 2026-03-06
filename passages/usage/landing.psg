@@ -1,1 +1,237 @@
 <<bgcolor color='#1f1f1f'>>
+
+# PassageJS Macro Reference
+
+This page documents all available macros for creating dynamic, interactive passages.
+
+---
+
+## Background & Styling
+
+### `<<bgcolor>>`
+Changes the background color of the page.
+
+**Syntax:**
+```
+<<bgcolor color="color-value">>
+```
+
+**Examples:**
+```
+<<bgcolor color="#1f1f1f">>
+<<bgcolor color='darkblue'>>
+<<bgcolor color="rgb(30, 30, 30)">>
+```
+
+**Note:** Accepts both single and double quotes. Only the first bgcolor macro on a page is applied.
+
+---
+
+## Animation Macros
+
+### `<<wiggle>>`
+Makes text shake with a chaotic, anxious animation. Each letter moves independently.
+
+**Syntax:**
+```
+<<wiggle>>text content<</wiggle>>
+```
+
+**Examples:**
+```
+<<wiggle>>This text shakes nervously<</wiggle>>
+<<wiggle>>**Bold and shaking!**<</wiggle>>
+```
+
+**Supports:** Markdown formatting (bold, italic, links, etc.)
+
+---
+
+### `<<typewriter>>`
+Reveals text letter by letter, like it's being typed.
+
+**Syntax:**
+```
+<<typewriter speed="milliseconds">>text content<</typewriter>>
+```
+
+**Parameters:**
+- `speed` - Milliseconds per character (lower = faster)
+
+**Examples:**
+```
+<<typewriter speed="50">>This types out slowly<</typewriter>>
+<<typewriter speed="20">>This types faster<</typewriter>>
+```
+
+**Note:** Does not support markdown inside (breaks character-by-character parsing)
+
+---
+
+### `<<fadein>>`
+Text fades in gradually after a delay.
+
+**Syntax:**
+```
+<<fadein delay="milliseconds">>text content<</fadein>>
+```
+
+**Parameters:**
+- `delay` - Milliseconds before fade starts
+
+**Examples:**
+```
+<<fadein delay="1000">>Appears after 1 second<</fadein>>
+<<fadein delay="2500">>This has **bold** text<</fadein>>
+```
+
+**Supports:** Markdown formatting
+
+---
+
+### `<<delayed>>`
+Text appears suddenly (no fade) after a delay.
+
+**Syntax:**
+```
+<<delayed time="milliseconds">>text content<</delayed>>
+```
+
+**Parameters:**
+- `time` - Milliseconds before appearing
+
+**Examples:**
+```
+<<delayed time="2000">>Pops in after 2 seconds<</delayed>>
+<<delayed time="1500">>Surprise [link](somewhere)!</</delayed>>
+```
+
+**Supports:** Markdown formatting
+
+---
+
+## Interactive Macros
+
+### `<<reveal>>`
+Progressive reveal system - click to reveal hidden content. Multiple reveals stack automatically.
+
+**Syntax:**
+```
+<<reveal text="clickable text">>hidden content<</reveal>>
+```
+
+**Parameters:**
+- `text` - The clickable text that triggers the reveal
+
+**Examples:**
+```
+<<reveal text="Click me">>This was hidden!<</reveal>>
+<<reveal text="Continue...">>More content<</reveal>>
+<<reveal text="And then?">>Even more!<</reveal>>
+```
+
+**Behavior:**
+- Only the first reveal shows initially
+- Clicking reveals the hidden content
+- Next reveal automatically appears
+- Perfect for branching narrative moments
+
+**Supports:** Markdown in both clickable text and hidden content
+
+---
+
+### `<<button>>`
+Creates an interactive button that runs JavaScript when clicked.
+
+**Syntax:**
+```
+<<button text="button label" onclick="javascript code">>
+```
+
+**Parameters:**
+- `text` - The button label (supports markdown)
+- `onclick` - JavaScript code to execute
+
+**Examples:**
+```
+<<button text="Click Me" onclick="alert('Hello!')" >>
+<<button text="**Bold Button**" onclick="console.log('clicked')" >>
+```
+
+**Supports:** Markdown in button text
+
+---
+
+### `<<onclick>>`
+Makes text clickable and runs JavaScript when clicked.
+
+**Syntax:**
+```
+<<onclick action="javascript code">>clickable text<</onclick>>
+```
+
+**Parameters:**
+- `action` - JavaScript code to execute
+
+**Examples:**
+```
+<<onclick action="alert('Clicked!')">>Click this text<</onclick>>
+<<onclick action="console.log('test')" >>[Check the **console**]<</onclick>>
+```
+
+**Supports:** Markdown in clickable text
+
+---
+
+## Link Syntax
+
+### Direct Links
+Link to a specific passage:
+```
+[[Display Text|groupName_passageID]]
+[[Display Text|passageID]]  <!-- Uses current group -->
+```
+
+### Random Group Links
+Link to a random passage from a group:
+```
+[[Display Text|@groupName]]
+```
+
+### Back Link
+Go back to the previous passage:
+```
+[[Back|@back]]
+[[@back]]
+```
+
+---
+
+## Combining Macros
+
+You can nest macros for complex effects:
+
+```
+<<fadein delay="1000">>
+  <<wiggle>>**This fades in, then wiggles!**<</wiggle>>
+<</fadein>>
+
+<<reveal text="What happens next?">>
+  <<typewriter speed="30">>The story continues...<</typewriter>>
+<</reveal>>
+```
+
+---
+
+## Tips
+
+1. **Use animations sparingly** - Too many can overwhelm readers
+2. **Test reveals carefully** - Make sure the progression feels natural
+3. **Markdown works almost everywhere** - Except in typewriter macro
+4. **Both quote styles work** - Use `"..."` or `'...'` in parameters
+5. **JavaScript safety** - Be careful with onclick/action parameters
+
+---
+
+[[Back to main menu|@back]]
+

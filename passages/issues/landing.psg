@@ -1,1 +1,170 @@
 <<bgcolor color='#1f1f1f'>>
+# Report Bugs & Suggest Features
+
+Found a bug? Have an idea for a new feature? We want to hear from you!
+
+---
+
+## Reporting Bugs
+
+### Before You Report
+
+1. **Check existing issues** - Someone might have already reported it
+2. **Try the latest version** - The bug might already be fixed
+3. **Test in a clean environment** - Make sure it's not your custom code
+
+### How to Report a Bug
+
+**Go to GitHub Issues:**
+1. Navigate to the PassageJS repository on GitHub
+2. Click the **"Issues"** tab
+3. Click **"New Issue"**
+4. Choose "Bug Report" (if available) or create a blank issue
+
+**Include this information:**
+
+```markdown
+**Bug Description:**
+Clear description of what's wrong
+
+**Steps to Reproduce:**
+1. Go to...
+2. Click on...
+3. See error
+
+**Expected Behavior:**
+What should happen
+
+**Actual Behavior:**
+What actually happens
+
+**Environment:**
+- Browser: Chrome 120 / Firefox 121 / Safari 17
+- OS: Windows 11 / macOS 14 / Linux
+- PassageJS Version: (check package.json)
+
+**Code Example:**
+```psg
+<<typewriter speed="50">>Example code that breaks<</typewriter>>
+```
+
+**Screenshots:**
+(if applicable)
+
+**Console Errors:**
+(Press F12, check Console tab, copy any errors)
+```
+
+---
+
+## Suggesting Features
+
+### Before You Suggest
+
+1. **Check existing issues** - Someone might have already suggested it
+2. **Consider scope** - Does it fit PassageJS's goals?
+3. **Think about alternatives** - Can it easily be done with existing macros?
+
+### How to Suggest a Feature
+
+**Go to GitHub Issues:**
+1. Navigate to the PassageJS repository
+2. Click **"Issues"** → **"New Issue"**
+3. Choose "Feature Request" or create a blank issue
+
+**Include this information:**
+
+```markdown
+**Feature Description:**
+Clear description of the feature
+
+**Use Case:**
+Why do you need this? What problem does it solve?
+
+**Example Usage:**
+```psg
+<<your-macro-idea parameter="value">>content<</your-macro>>
+```
+
+**Alternatives Considered:**
+What have you tried? Why doesn't it work?
+
+**Additional Context:**
+Screenshots, examples from other tools, etc.
+```
+
+---
+
+## Common Issues & Solutions
+
+### "Passage not found"
+- Check file naming: `groupName_passageID` matches `passages/groupName/passageID.psg`
+- Verify file extension is `.psg` (not `.md`)
+- Check for typos in passage name
+
+### "Macro not working"
+- Verify closing tags: `<</macro>>` not `<<macro>>`
+- Check for proper quote marks: `" "` or `' '`
+- View browser console (F12) for error messages
+
+### "Link shows as plain text"
+- Check link syntax: `[[Text|target]]` not `[Text|target]`
+- Make sure target passage exists
+- For group links, verify manifest.json exists
+
+### "Animation not playing"
+- Refresh the page after editing
+- Check for JavaScript errors in console (F12)
+- Make sure macro parameters are correct
+
+### "Save/Load not working"
+- Check browser localStorage isn't disabled
+- Try a different browser
+- Clear browser cache and reload
+
+---
+
+## Feature Request Examples
+
+Here are some ideas that would make great feature requests:
+
+- **Variable system** - Track player choices and stats
+- **Conditional macros** - Show content based on conditions
+- **Timer macros** - Time-limited choices
+- **Sound/music** - Audio playback support
+- **Image display** - Show images in passages
+- **Achievement system** - Track player accomplishments
+- **Export to HTML** - Single-file distribution
+- **Mobile gestures** - Swipe navigation
+
+---
+
+## Guidelines
+
+### Be Specific
+
+❌ "The engine is broken"
+✅ "The wiggle macro crashes when using bold text inside it"
+
+### Be Constructive
+
+❌ "This feature is stupid"
+✅ "I think this feature could be improved by..."
+
+### Be Patient
+
+- Responses may take a few days
+- Bug fixes are prioritized by severity
+
+---
+
+## Want to Fix It Yourself?
+
+If you're comfortable with code, consider [[contributing|contributor_landing]] directly!
+
+Many bugs are great learning opportunities, and we're happy to guide first-time contributors.
+
+---
+
+[[Back to main menu|@back]]
+

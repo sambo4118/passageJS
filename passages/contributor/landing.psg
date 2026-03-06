@@ -1,3 +1,143 @@
 <<bgcolor color='#1f1f1f'>>
-# Contibution info
+# Contributing to PassageJS
+
+Thanks for your interest in contributing! Whether you're fixing bugs, adding features, or improving documentation, your help is appreciated.
+
+---
+
+## Getting Started
+
+### 1. Fork the Repository
+
+1. Go to the PassageJS GitHub repository
+2. Click the **"Fork"** button in the top-right corner
+3. This creates your own copy of the project
+
+### 2. Clone Your Fork
+
+```bash
+git clone https://github.com/YOUR_USERNAME/passagejs.git
+cd passagejs
+npm start
+```
+
+### 3. Create a Branch
+
+Always create a new branch for your changes:
+
+```bash
+git checkout -b feature/my-new-feature
+# or
+git checkout -b fix/bug-description
+```
+
+**Branch naming:**
+- `feature/` - for new features
+- `fix/` - for bug fixes
+- `docs/` - for documentation updates
+
+---
+
+## Making Changes
+
+### Code Guidelines
+
+1. **Keep it readable** - Use clear variable names check existing stylings
+2. **Test your changes** - Make sure everything works before submitting
+3. **Follow existing patterns** - Match the style of surrounding code
+4. **One feature per PR** - Don't bundle multiple unrelated changes
+
+### File Structure
+
+```
+render.js           - Main engine (macros, parsing, game state)
+index.html          - Entry point
+styles.css          - All styling and animations
+server.js           - Development server
+passages/           - Example passages (feel free to modify)
+```
+
+---
+
+## Submitting Your Changes
+
+### 1. Commit Your Changes
+
+```bash
+git add .
+git commit -m "Add: descriptive commit message"
+```
+
+**Good commit messages:**
+- `Add: wiggle macro for animated text`
+- `Fix: bgcolor macro not parsing single quotes`
+- `Docs: update README with new macro syntax`
+- `Improve: typewriter animation performance`
+
+### 2. Push to Your Fork
+
+```bash
+git push origin feature/my-new-feature
+```
+
+### 3. Create a Pull Request
+
+1. Go to **your fork** on GitHub
+2. Click **"Pull Request"** or **"Compare & pull request"**
+3. Write a clear description:
+   - What does this change?
+   - Why is it needed?
+   - How did you test it?
+4. Click **"Create Pull Request"**
+
+---
+
+## What to Contribute
+
+### Good First Issues
+
+- 📝 **Documentation improvements** - Fix typos, clarify explanations
+- 🎨 **New animation macros** - Create cool text effects
+- 🐛 **Bug fixes** - Fix issues listed on GitHub
+- ✨ **Example passages** - Create demo stories
+- 🎭 **CSS themes** - Design alternative color schemes
+
+### Feature Ideas
+
+- Variable system for tracking story state
+- Conditional display macros (if/else)
+- Audio/music support
+- Image display macros
+- Choice timers
+- Inventory system
+- Character relationship tracking
+
+---
+
+## Code of Conduct
+
+- **Be respectful** - Everyone is learning
+- **Be patient** - Reviews take time
+- **Be constructive** - Suggest improvements kindly
+- **Be collaborative** - Help others when you can
+
+---
+
+## Need Help?
+
+- **Questions?** Open a GitHub Discussion
+- **Stuck?** Ask in your Pull Request
+- **Found a bug while contributing?** [[Report it|issues_landing]]
+
+---
+
+## Resources
+
+- [GitHub's Fork & PR Guide](https://docs.github.com/en/get-started/quickstart/fork-a-repo)
+- [Git Basics Tutorial](https://git-scm.com/book/en/v2/Getting-Started-Git-Basics)
+- [Markdown Syntax Guide](https://www.markdownguide.org/basic-syntax/)
+
+---
+
+[[Back to main menu|@back]]
 

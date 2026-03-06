@@ -2,14 +2,14 @@
 
 # welcome to the passageJS project!
 
-**this is a project intended to be an alternative to Twine or even RenPY. with custom animations, smart transtions, and infinet scalablility**
+**<<typewriter speed="20">>this is a project intended to be an alternative to Twine or even RenPY. with custom animations, smart transitions, and infinite scalability<</typewriter>>**
 
-so I have but one simple question.   
-what are you here for?  
+<<typewriter speed="50">>so I have but one simple question.
+what are you here for?<</typewriter>>
 
 [[to become a contributor| contributor_landing]]  
 [[to use this in my story|usage_landing]]  
-[[to suddgest features/report bugs|issues_landing]]  
+[[to suggest features/report bugs|issues_landing]]  
 [[quickstart guide|quickstart_landing]]
 
 otherwise here's the general stuff you expect in a readme!
