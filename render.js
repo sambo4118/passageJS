@@ -13,14 +13,14 @@ class SeededRandom {
     }
 }
 
-export const gameState = {
+const gameState = {
     rng: new SeededRandom(Date.now()),
     visitedPassages: new Set(),
     currentPassage: null,
     previousPassage: null
 };
 
-export function saveGame(slotName = 'autosave') {
+function saveGame(slotName = 'autosave') {
     const saveData = {
         currentPassage: gameState.currentPassage,
         previousPassage: gameState.previousPassage,
@@ -39,7 +39,7 @@ export function saveGame(slotName = 'autosave') {
     }
 }
 
-export async function loadGame(slotName = 'autosave') {
+async function loadGame(slotName = 'autosave') {
     try {
         const saveDataStr = localStorage.getItem(`passagejs_save_${slotName}`);
         if (!saveDataStr) {
@@ -64,7 +64,7 @@ export async function loadGame(slotName = 'autosave') {
     }
 }
 
-export function getSaveSlots() {
+function getSaveSlots() {
     const saves = [];
     for (let i = 0; i < localStorage.length; i++) {
         const key = localStorage.key(i);
@@ -82,28 +82,28 @@ export function getSaveSlots() {
     return saves.sort((a, b) => b.timestamp - a.timestamp);
 }
 
-export function deleteSave(slotName) {
+function deleteSave(slotName) {
     localStorage.removeItem(`passagejs_save_${slotName}`);
     console.log(`Deleted save slot: ${slotName}`);
 }
 
-export function hasSave(slotName = 'autosave') {
+function hasSave(slotName = 'autosave') {
     return localStorage.getItem(`passagejs_save_${slotName}`) !== null;
 }
 
-export function displayMainText(text) {
+function displayMainText(text) {
     const displayElement = document.getElementById("display");
     if (!displayElement) return;
     displayElement.textContent = text;
 }
 
-export function displayMainHTML(html) {
+function displayMainHTML(html) {
     const displayElement = document.getElementById("display");
     if (!displayElement) return;
     displayElement.innerHTML = html;
 }
 
-export function extractBetweenDelimiter(text, startDelimiter, endDelimiter) {
+function extractBetweenDelimiter(text, startDelimiter, endDelimiter) {
     const escapeRegex = (str) => str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
     const pattern = new RegExp(`${escapeRegex(startDelimiter)}(.*?)${escapeRegex(endDelimiter)}`, 'gs');
 
@@ -179,23 +179,6 @@ function extractTextColorBlockMacros(text) {
 
     return matches;
 }
-
-export async function loadPassage(passageName) {
-    const candidatePaths = getCandidatePassagePaths(passageName);
-    let lastAttemptedPath = candidatePaths[0];
-
-    for (const filePath of candidatePaths) {
-        lastAttemptedPath = filePath;
-        const response = await fetch(filePath);
-        if (response.ok) {
-            return await response.text();
-        }
-    }
-
-    throw new Error(`Failed to load ${lastAttemptedPath}`);
-}
-
-
 function protectCodeBlocks(text) {
     const codeBlocks = [];
     let counter = 0;
@@ -227,22 +210,17 @@ function restoreCodeBlocks(text, codeBlocks) {
     return result;
 }
 
-export async function renderPassage(passageName) {
-    let text = await loadPassage(passageName);
+async function renderPassage(passageName) {
+    const rawText = await loadPassage(passageName);
     
     const { marked } = await import('https://cdn.jsdelivr.net/npm/marked@11/+esm');
     window.marked = marked;
-    
-    const { text: protectedText, codeBlocks } = protectCodeBlocks(text);
-    
-    let processedText = parseBackgroundColor(protectedText);
-    processedText = parseAnimations(processedText);
-    processedText = parseLinks(processedText, passageName);
-    processedText = parseTextColor(processedText);
-    
-    text = restoreCodeBlocks(processedText, codeBlocks);
-    
-    const html = marked.parse(text);
+
+    const processedMarkup = processPassageMarkup(rawText, {
+        currentPassageName: passageName,
+        state: { onclickRevealCounter: 0 }
+    });
+    const html = marked.parse(processedMarkup);
     
     displayMainHTML(html);
     
@@ -261,7 +239,51 @@ export async function renderPassage(passageName) {
     
     saveGame('autosave');
     
-    preloadLinkedPassages(text);
+    preloadLinkedPassages(processedMarkup);
+}
+
+const MAX_MACRO_RECURSION_DEPTH = 20;
+
+function processPassageMarkup(text, context = {}, depth = 0) {
+    if (depth > MAX_MACRO_RECURSION_DEPTH) {
+        console.warn(`Macro recursion limit (${MAX_MACRO_RECURSION_DEPTH}) reached`);
+        return text;
+    }
+
+    const contextWithState = {
+        ...context,
+        state: context.state || { onclickRevealCounter: 0 }
+    };
+
+    const { text: protectedText, codeBlocks } = protectCodeBlocks(text);
+
+    let processedText = parseBackgroundColor(protectedText);
+    processedText = parseAnimations(processedText, contextWithState, depth);
+    processedText = parseTextColor(processedText, contextWithState, depth);
+
+    return restoreCodeBlocks(processedText, codeBlocks);
+}
+
+function renderInlineMacroBody(body, context, depth) {
+    const processedBody = processPassageMarkup(body, context, depth + 1);
+    return parseInlineMarkdown(processedBody);
+}
+
+function renderBlockAwareMacroBody(body, context, depth) {
+    const processedBody = processPassageMarkup(body, context, depth + 1);
+    const useBlockMarkdown = parseBlockMarkdown(processedBody);
+
+    if (useBlockMarkdown && window.marked) {
+        return {
+            html: window.marked.parse(processedBody).trim(),
+            useBlockMarkdown
+        };
+    }
+
+    return {
+        html: parseInlineMarkdown(processedBody),
+        useBlockMarkdown
+    };
 }
 
 function parseInlineMarkdown(text) {
@@ -291,7 +313,7 @@ function parseBackgroundColor(text) {
     return text;
 }
 
-function parseTextColor(text) {
+function parseTextColor(text, context = {}, depth = 0) {
     let result = text;
 
     while (true) {
@@ -310,10 +332,7 @@ function parseTextColor(text) {
         const colorMatch = attrs.match(/color=["']([^"']+)["']/);
         const color = colorMatch ? colorMatch[1] : null;
 
-        const useBlockMarkdown = looksLikeBlockMarkdown(body);
-        const innerHTML = useBlockMarkdown && window.marked
-            ? window.marked.parse(body).trim()
-            : parseInlineMarkdown(body);
+        const { html: innerHTML, useBlockMarkdown } = renderBlockAwareMacroBody(body, context, depth);
 
         const tag = useBlockMarkdown ? 'div' : 'span';
         const replacement = color
@@ -337,16 +356,16 @@ function parseTextColor(text) {
     return result;
 }
 
-function looksLikeBlockMarkdown(raw) {
+function parseBlockMarkdown(raw) {
     if (/^\s{0,3}([-*_])(?:\s*\1){2,}\s*$/m.test(raw)) return true;
     if (/^\s{0,3}(#{1,6}\s|[-*+]\s|\d+[.)]\s|>\s|```|~~~)/m.test(raw)) return true;
     if (/\n\s*\n/.test(raw)) return true;
     return false;
 }
 
-function parseAnimations(text) {
+function parseAnimations(text, context = {}, depth = 0) {
     let result = text;
-    let onclickRevealCounter = 0;
+    const runtimeState = context.state || { onclickRevealCounter: 0 };
     
     // Parse <<fadein delay="1000">>text<</fadein>>
     const fadeins = extractBetweenDelimiter(result, '<<fadein', '<</fadein>>');
@@ -354,7 +373,7 @@ function parseAnimations(text) {
         const delayMatch = macro.content.match(/delay="(\d+)">>(.*)/s);
         if (delayMatch) {
             const delay = delayMatch[1];
-            const content = parseInlineMarkdown(delayMatch[2]);
+            const content = renderInlineMacroBody(delayMatch[2], context, depth);
             const html = `<span class="fade-in" style="animation-delay: ${delay}ms;">${content}</span>`;
             result = result.replace(macro.fullMatch, html);
         }
@@ -366,7 +385,7 @@ function parseAnimations(text) {
         const timeMatch = macro.content.match(/time="(\d+)">>(.*)/s);
         if (timeMatch) {
             const time = timeMatch[1];
-            const content = parseInlineMarkdown(timeMatch[2]);
+            const content = renderInlineMacroBody(timeMatch[2], context, depth);
             const html = `<span class="delayed" style="animation-delay: ${time}ms;">${content}</span>`;
             result = result.replace(macro.fullMatch, html);
         }
@@ -376,7 +395,7 @@ function parseAnimations(text) {
     const wiggles = extractBetweenDelimiter(result, '<<wiggle>>', '<</wiggle>>');
     for (const macro of wiggles) {
 
-        const htmlContent = parseInlineMarkdown(macro.content);
+        const htmlContent = renderInlineMacroBody(macro.content, context, depth);
         
         const parts = htmlContent.split(/(<[^>]+>)/);
         
@@ -425,7 +444,6 @@ function parseAnimations(text) {
     }
     
     // Parse <<onclick action="...">>text<</onclick>>
-    // Resolve nested onclick macros from the inside out.
     while (true) {
         const onclicks = extractOnclickMacros(result);
         if (onclicks.length === 0) break;
@@ -452,13 +470,10 @@ function parseAnimations(text) {
         let replacementHTML = null;
 
         if (revealEnabled) {
-            const useBlockMarkdown = looksLikeBlockMarkdown(body);
-            const hiddenContent = useBlockMarkdown && window.marked
-                ? window.marked.parse(body).trim()
-                : parseInlineMarkdown(body);
+            const { html: hiddenContent, useBlockMarkdown } = renderBlockAwareMacroBody(body, context, depth);
             const containerTag = useBlockMarkdown ? 'div' : 'span';
             const displayType = useBlockMarkdown ? 'block' : 'inline';
-            const currentId = `onclick-reveal-${onclickRevealCounter++}`;
+            const currentId = `onclick-reveal-${runtimeState.onclickRevealCounter++}`;
             const autoReveal = !hasTriggerText;
 
             let onclickCode = `var el = document.getElementById('${currentId}'); el.style.display='${displayType}'; el.style.animation='fadeInText 0.3s ease-in'; this.style.display='none'; window.activateAnimations();`;
@@ -516,28 +531,7 @@ window.activateAnimations = function() {
     });
 }
 
-async function preloadLinkedPassages(parsedText) {
-    const tempDiv = document.createElement('div');
-    tempDiv.innerHTML = parsedText;
-    const links = tempDiv.querySelectorAll('.passage-link');
-    
-    for (const link of links) {
-        const { type, target, group } = link.dataset;
-        
-        if (type === 'direct') {
-            const candidatePaths = getCandidatePassagePaths(target);
-
-            // Avoid noisy false-404s when a direct target can map to multiple paths.
-            // Runtime navigation still tries all candidates in loadPassage.
-            if (candidatePaths.length === 1) {
-                fetch(candidatePaths[0]).catch(() => {});
-            }
-        } else if (type === 'group') {
-            fetch(getManifestPathForGroup(group)).catch(() => {});
-        }
-    }
-}
-
+// Passage linking and navigation helpers.
 function getManifestPathForGroup(groupName) {
     const groupParts = groupName.split("_");
     const rootGroup = groupParts[0];
@@ -591,31 +585,23 @@ function getCandidatePassagePaths(passageName) {
     return [nestedPath, primaryPath];
 }
 
-function shouldIgnoreGlobalRevealClick(target) {
-    if (!(target instanceof Element)) return false;
+async function loadPassage(passageName) {
+    const candidatePaths = getCandidatePassagePaths(passageName);
+    let lastAttemptedPath = candidatePaths[0];
 
-    return Boolean(target.closest(
-        'a, button, input, select, textarea, label, summary, details, [role="button"], [onclick], .passage-link, .interactive-button, .clickable-text'
-    ));
+    for (const filePath of candidatePaths) {
+        lastAttemptedPath = filePath;
+        const response = await fetch(filePath);
+        if (response.ok) {
+            const passageText = await response.text();
+            return parseLinks(passageText, passageName);
+        }
+    }
+
+    throw new Error(`Failed to load ${lastAttemptedPath}`);
 }
 
-function triggerNextAutoOnclickReveal() {
-    const triggers = Array.from(document.querySelectorAll('.onclick-reveal-trigger[data-auto="true"]'));
-    const nextTrigger = triggers.find((trigger) => {
-        const revealId = trigger.id.replace('-trigger', '');
-        const content = document.getElementById(revealId);
-        if (!content) return false;
-        return window.getComputedStyle(content).display === 'none';
-    });
-
-    if (!nextTrigger) return false;
-
-    nextTrigger.click();
-    return true;
-}
-
-
-export function parseLinks(text, currentPassageName) {
+function parseLinks(text, currentPassageName) {
     const links = extractBetweenDelimiter(text, "[[", "]]");
     let result = text;
     const currentGroup = currentPassageName ? currentPassageName.split("_")[0] : '';
@@ -669,7 +655,27 @@ export function parseLinks(text, currentPassageName) {
     return result;
 }
 
-export async function selectPassageFromGroup(groupName) {
+async function preloadLinkedPassages(parsedText) {
+    const tempDiv = document.createElement('div');
+    tempDiv.innerHTML = parsedText;
+    const links = tempDiv.querySelectorAll('.passage-link');
+    
+    for (const link of links) {
+        const { type, target, group } = link.dataset;
+        
+        if (type === 'direct') {
+            const candidatePaths = getCandidatePassagePaths(target);
+
+            if (candidatePaths.length === 1) {
+                fetch(candidatePaths[0]).catch(() => {});
+            }
+        } else if (type === 'group') {
+            fetch(getManifestPathForGroup(group)).catch(() => {});
+        }
+    }
+}
+
+async function selectPassageFromGroup(groupName) {
     try {
         // Supports both:
         // - @groupName (loads passages/groupName/manifest.json)
@@ -728,7 +734,7 @@ export async function selectPassageFromGroup(groupName) {
     }
 }
 
-export async function handleLinkClick(linkElement) {
+async function handleLinkClick(linkElement) {
     const { type, target, group, fromGroup, fromId } = linkElement.dataset;
     
     if (type === "back") {
@@ -767,6 +773,29 @@ export async function handleLinkClick(linkElement) {
     }
     
     return null;
+}
+
+function shouldIgnoreGlobalRevealClick(target) {
+    if (!(target instanceof Element)) return false;
+
+    return Boolean(target.closest(
+        'a, button, input, select, textarea, label, summary, details, [role="button"], [onclick], .passage-link, .interactive-button, .clickable-text'
+    ));
+}
+
+function triggerNextAutoOnclickReveal() {
+    const triggers = Array.from(document.querySelectorAll('.onclick-reveal-trigger[data-auto="true"]'));
+    const nextTrigger = triggers.find((trigger) => {
+        const revealId = trigger.id.replace('-trigger', '');
+        const content = document.getElementById(revealId);
+        if (!content) return false;
+        return window.getComputedStyle(content).display === 'none';
+    });
+
+    if (!nextTrigger) return false;
+
+    nextTrigger.click();
+    return true;
 }
 
 document.addEventListener('click', async (click) => {
