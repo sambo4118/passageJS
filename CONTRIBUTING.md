@@ -4,27 +4,27 @@ Thank you for your interest in contributing! This project aims to be a flexible,
 
 ## Ways to Contribute
 
-### 🐛 Bug Reports
+### Bug Reports
 Found a bug? Open an issue with:
 - Description of the problem
 - Steps to reproduce
 - Expected vs actual behavior
 - Browser/Node version
 
-### 💡 Feature Requests
+### Feature Requests
 Have an idea? Open an issue describing:
 - The feature you'd like
 - Why it would be useful
 - Example use cases
 
-### 📝 Documentation
+### Documentation
 Help improve the docs by:
 - Fixing typos or unclear explanations
 - Adding examples
 - Creating tutorials
 - Translating documentation
 
-### 💻 Code Contributions
+### Code Contributions
 Pull requests welcome for:
 - Bug fixes
 - New animation macros

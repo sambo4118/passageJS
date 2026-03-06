@@ -11,11 +11,11 @@
 A dynamic, Twine-like narrative engine with markdown support, custom animations, and smart transitions. Build interactive fiction and branching narratives with simple markdown files.
 
 **Key advantages over Twine:**
-- ✨ Built-in spell checking (via VS Code)
-- 🚀 Scales to 100,000+ passages without performance issues
-- 📝 Uses real markdown with syntax highlighting
-- 🎨 Full control over styling and animations
-- 🔧 Easy to extend with custom macros
+- Built-in spell checking (via VS Code)
+- Scales to 100,000+ passages without performance issues
+- Uses real markdown with syntax highlighting
+- Full control over styling and animations
+- Easy to extend with custom macros
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Node Version](https://img.shields.io/badge/node-%3E%3D18-brightgreen)](https://nodejs.org/)
