@@ -25,6 +25,28 @@ Changes the background color of the page.
 
 **Note:** Accepts both single and double quotes. Only the first bgcolor macro on a page is applied.
 
+### `<<textcolor>>`
+Changes text color globally or for a specific block.
+
+**Syntax:**
+```
+<<textcolor color="color-value">>
+<<textcolor color="color-value">>content<</textcolor>>
+```
+
+**Examples:**
+```
+<<textcolor color="#f5f5f5">>
+<<textcolor color='lightgreen'>>
+<<textcolor color="rgb(240, 240, 255)">>
+<<textcolor color="#ff6b6b">>Only this text is red<</textcolor>>
+```
+
+**Behavior:**
+- Unclosed form (`<<textcolor ...>>`) sets global default page text color
+- Closed form (`<<textcolor ...>>...<</textcolor>>`) colors only wrapped content
+- Accepts both single and double quotes
+
 ---
 
 ## Animation Macros
@@ -112,29 +134,39 @@ Text appears suddenly (no fade) after a delay.
 
 ## Interactive Macros
 
-### `<<reveal>>`
-Progressive reveal system - click to reveal hidden content. Multiple reveals stack automatically.
+### `<<onclick>>` (Reveal Mode)
+Progressive reveal system - click labeled text to reveal hidden content.
 
 **Syntax:**
 ```
-<<reveal text="clickable text">>hidden content<</reveal>>
+<<onclick text="clickable text">>hidden content<</onclick>>
 ```
 
 **Parameters:**
 - `text` - The clickable text that triggers the reveal
+- `action` / `js` - Optional JavaScript to run on click (also reveals content)
 
 **Examples:**
 ```
-<<reveal text="Click me">>This was hidden!<</reveal>>
-<<reveal text="Continue...">>More content<</reveal>>
-<<reveal text="And then?">>Even more!<</reveal>>
+<<onclick text="Click me">>This was hidden!
+<<onclick text="Continue...">>More content
+<<onclick text="And then?">>Even more!
+<<onclick text="And then?">>Even more!
+<<onclick text="Reveal + run JS" action="window.changeBgColor('#222')">>Dark mode moment
+<</onclick>><</onclick>><</onclick>><</onclick>><</onclick>>
 ```
+<<onclick text="Click me">>This was hidden!
+<<onclick text="Continue...">>More content
+<<onclick text="And then?">>Even more!
+<<onclick text="And then?">>Even more!
+<<onclick text="Reveal + run JS" action="window.changeBgColor('#222')">>Dark mode moment
+<</onclick>><</onclick>><</onclick>><</onclick>><</onclick>>
 
 **Behavior:**
-- Only the first reveal shows initially
-- Clicking reveals the hidden content
-- Next reveal automatically appears
-- Perfect for branching narrative moments
+- Clicking the label reveals hidden content
+- If no `text` is provided, reveal advances on non-interactive page clicks
+- Optional JS can run on the same click
+- Hidden content can use markdown (including headers and `---`)
 
 **Supports:** Markdown in both clickable text and hidden content
 
@@ -216,9 +248,9 @@ You can nest macros for complex effects:
   <<wiggle>>**This fades in, then wiggles!**<</wiggle>>
 <</fadein>>
 
-<<reveal text="What happens next?">>
+<<onclick text="What happens next?">>
   <<typewriter speed="30">>The story continues...<</typewriter>>
-<</reveal>>
+<</onclick>>
 ```
 
 ---
@@ -226,7 +258,7 @@ You can nest macros for complex effects:
 ## Tips
 
 1. **Use animations sparingly** - Too many can overwhelm readers
-2. **Test reveals carefully** - Make sure the progression feels natural
+2. **Test onclick reveal flows carefully** - Make sure the progression feels natural
 3. **Markdown works almost everywhere** - Except in typewriter macro
 4. **Both quote styles work** - Use `"..."` or `'...'` in parameters
 5. **JavaScript safety** - Be careful with onclick/action parameters

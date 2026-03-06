@@ -175,6 +175,19 @@ Changes the background color of the entire page:
 <<bgcolor color='darkblue'>>
 ```
 
+### Text Color
+
+Changes text color globally or for a specific block:
+
+```markdown
+<<textcolor color="#f5f5f5">>
+<<textcolor color='lightgreen'>>
+<<textcolor color="#ff6b6b">>Only this text is red<</textcolor>>
+```
+
+- Unclosed form sets global default page text color
+- Closed form colors only wrapped content
+
 ### Wiggle (Anxious Shake)
 
 Makes text shake with a chaotic, anxious animation. Each letter moves independently. Supports markdown formatting.
@@ -212,19 +225,21 @@ Text appears suddenly after a delay. Time is in milliseconds. Supports markdown.
 
 ## Interactive Macros
 
-### Reveal
+### Onclick Reveal Mode
 
-Progressive reveal system - click to reveal hidden content. Multiple reveals stack automatically. Perfect for branching narrative moments.
+Progressive reveal system using `onclick` - click labeled text to reveal hidden content. Perfect for branching narrative moments.
 
 ```markdown
-<<reveal text="Click me">>This was hidden!<</reveal>>
-<<reveal text="Continue...">>More content<</reveal>>
-<<reveal text="And then?">>Even more!<</reveal>>
+<<onclick text="Click me">>This was hidden!<</onclick>>
+<<onclick text="Continue...">>More content<</onclick>>
+<<onclick text="And then?">>Even more!<</onclick>>
 ```
 
 **Behavior:**
-- Only the first reveal shows initially
-- Clicking reveals the hidden content and shows the next reveal button
+- If `text` and body content are both present, it behaves as click-to-reveal
+- If body content is present but `text` is omitted, it reveals on non-interactive page clicks
+- Clicking the label reveals hidden content
+- Optional `action` or `js` runs JavaScript on the same click
 - Supports markdown in both clickable text and hidden content
 
 ### Button
@@ -256,9 +271,9 @@ You can nest macros and markdown for complex effects:
   <<wiggle>>**This fades in, then wiggles!**<</wiggle>>
 <</fadein>>
 
-<<reveal text="What happens next?">>
+<<onclick text="What happens next?">>
   <<typewriter speed="30">>The story continues...<</typewriter>>
-<</reveal>>
+<</onclick>>
 ```
 
 **For a complete interactive macro reference,** run `npm start` and navigate to the usage guide in the interactive readme!
@@ -339,13 +354,13 @@ You find yourself in a <<wiggle>>strange<<</wiggle>> place.
 
 <<delayed time="2000">>What will you do?<</delayed>>
 
-<<reveal text="Look closer...">>
+<<onclick text="Look closer...">>
 You notice something unusual about the shadows.
-<</reveal>>
+<</onclick>>
 
-<<reveal text="Investigate further">>
+<<onclick text="Investigate further">>
 A hidden door reveals itself!
-<</reveal>>
+<</onclick>>
 
 [[Examine the room|chapter2_room]]
 [[Leave quickly|@escape]]

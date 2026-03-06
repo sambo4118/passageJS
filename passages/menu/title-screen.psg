@@ -24,3 +24,15 @@ otherwise here's the general stuff you expect in a readme!
 - **Zero dependencies** - Vanilla JavaScript, no build step required.
 - **Highly customizable** - Easy to extend with your own macros and styles.
 - **limitless scope** - Never gets bogged down with huge stories.
+
+<small> pro-tip, click the page </small>
+
+<<onclick>>
+---
+Woah, the page *revealed* something when you clicked?  
+thats crazy <<onclick text="click again">>
+you made it to an example story! congrats, isn't this a great read me?  
+[[**yeah it's awesome!**|@example_title]]  
+[[no! this sucks|example_evil_this-sucks]]
+<</onclick>>
+<</onclick>>
