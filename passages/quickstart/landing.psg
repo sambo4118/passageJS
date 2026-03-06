@@ -1,0 +1,15 @@
+<<bgcolor color='#1f1f1f'>>
+## quickstart
+
+to get started if you have git installed just clone the repo with;  
+
+```bash
+# Clone or download this repository
+git clone https://github.com/YOUR_USERNAME/passagejs.git
+cd passagejs
+
+# Start the development server
+npm start
+
+# Open http://localhost:8080 in your browser
+```

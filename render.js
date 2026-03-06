@@ -14,14 +14,12 @@ class SeededRandom {
     }
 }
 
-// Game state tracking RNG, visited passages, and current passage
 export const gameState = {
-    rng: new SeededRandom(Date.now()), // Default seed, can be changed
+    rng: new SeededRandom(Date.now()),
     visitedPassages: new Set(),
     currentPassage: null
 };
 
-// Save game state to localStorage
 export function saveGame(slotName = 'autosave') {
     const saveData = {
         currentPassage: gameState.currentPassage,
@@ -51,12 +49,10 @@ export async function loadGame(slotName = 'autosave') {
         
         const saveData = JSON.parse(saveDataStr);
         
-        // Restore game state
         gameState.currentPassage = saveData.currentPassage;
         gameState.visitedPassages = new Set(saveData.visitedPassages);
         gameState.rng = new SeededRandom(saveData.rngSeed);
         
-        // Render the saved passage
         await renderPassage(saveData.currentPassage);
         
         console.log(`Game loaded from slot: ${slotName}`);
@@ -86,13 +82,11 @@ export function getSaveSlots() {
     return saves.sort((a, b) => b.timestamp - a.timestamp);
 }
 
-// Delete a save slot
 export function deleteSave(slotName) {
     localStorage.removeItem(`passagejs_save_${slotName}`);
     console.log(`Deleted save slot: ${slotName}`);
 }
 
-// Check if a save exists
 export function hasSave(slotName = 'autosave') {
     return localStorage.getItem(`passagejs_save_${slotName}`) !== null;
 }
@@ -130,13 +124,12 @@ export async function loadPassage(passageName) {
     
     let filePath;
     if (split[1] === "transition") {
-        // Format: groupname_transition_fileID (e.g., intelectualization_transition_T-I1-M1)
-        const transitionFileID = split.slice(2).join("_"); // Handle IDs with underscores
-        filePath = `./passages/${groupName}/transitions/${transitionFileID}.md`;
+
+        const transitionFileID = split.slice(2).join("_"); 
+        filePath = `./passages/${groupName}/transitions/${transitionFileID}.psg`;
     } else {
-        // Format: groupname_fileID (e.g., intelectualization_I1)
-        const fileID = split.slice(1).join("_"); // Handle IDs with underscores
-        filePath = `./passages/${groupName}/${fileID}.md`;
+        const fileID = split.slice(1).join("_");
+        filePath = `./passages/${groupName}/${fileID}.psg`;
     }
     
     const response = await fetch(filePath);
@@ -147,27 +140,98 @@ export async function loadPassage(passageName) {
 export async function renderPassage(passageName) {
     let text = await loadPassage(passageName);
     
-    // Parse animation macros before links
+    const { marked } = await import('https://cdn.jsdelivr.net/npm/marked@11/+esm');
+    window.marked = marked;
+    
+    // Configure marked for syntax highlighting
+    marked.setOptions({
+        highlight: function(code, lang) {
+            if (lang && window.hljs && window.hljs.getLanguage(lang)) {
+                try {
+                    return window.hljs.highlight(code, { language: lang }).value;
+                } catch (err) {}
+            }
+            return code;
+        }
+    });
+    
+    text = parseBackgroundColor(text);
+    text = parseReveals(text);
     text = parseAnimations(text);
     text = parseLinks(text, passageName);
     
-    // Convert markdown to HTML with marked
-    const { marked } = await import('https://cdn.jsdelivr.net/npm/marked@11/+esm');
     const html = marked.parse(text);
     
     displayMainHTML(html);
-    
-    // Activate animations
-    activateAnimations();
+
+    window.activateAnimations();
     
     gameState.currentPassage = passageName;
     gameState.visitedPassages.add(passageName);
     
-    // Autosave after each passage
     saveGame('autosave');
     
-    // Preload linked passages
     preloadLinkedPassages(text);
+}
+
+function parseInlineMarkdown(text) {
+    if (window.marked) {
+        return window.marked.parseInline(text);
+    }
+    return text;
+}
+
+function parseBackgroundColor(text) {
+    const bgMacros = extractBetweenDelimiter(text, '<<bgcolor', '>>');
+    
+    if (bgMacros.length === 0) {
+        document.body.style.backgroundColor = '#101114';
+        return text;
+    }
+    
+    // Apply the first bgcolor found
+    for (const macro of bgMacros) {
+        const colorMatch = macro.content.match(/color=["']([^"']+)["']/);
+        if (colorMatch) {
+            const color = colorMatch[1];
+            document.body.style.backgroundColor = color;
+        }
+        text = text.replace(macro.fullMatch, '');
+    }
+    
+    return text;
+}
+
+// Parse reveal macros (before animations so animations work inside)
+function parseReveals(text) {
+    let result = text;
+    let revealCounter = 0;
+    
+    // Parse <<reveal text="clickable">>hidden content<</reveal>>
+    const reveals = extractBetweenDelimiter(result, '<<reveal', '<</reveal>>');
+    for (const macro of reveals) {
+        const textMatch = macro.content.match(/text=["']([^"']+)["']>>(.*)/s);
+        if (textMatch) {
+            const clickText = parseInlineMarkdown(textMatch[1]);
+            const hiddenContent = parseInlineMarkdown(textMatch[2]);
+            const currentId = 'reveal-' + revealCounter;
+            const nextId = 'reveal-' + (revealCounter + 1);
+            
+            // Check if there's another reveal after this
+            const hasNext = revealCounter < reveals.length - 1;
+            
+            let onclick = `var el = document.getElementById('${currentId}'); el.style.display='inline'; el.style.animation='fadeInText 0.3s ease-in'; this.style.display='none'; window.activateAnimations();`;
+            if (hasNext) {
+                onclick += ` document.getElementById('${nextId}-trigger').style.display='inline';`;
+            }
+            
+            const html = `<span id="${currentId}-trigger" class="clickable-text" onclick="${onclick}" style="cursor: pointer; text-decoration: underline; ${revealCounter > 0 ? 'display: none;' : ''}">${clickText}</span><span id="${currentId}" style="display: none;">${hiddenContent}</span>`;
+            result = result.replace(macro.fullMatch, html);
+            revealCounter++;
+        }
+    }
+    
+    return result;
 }
 
 // Parse animation macros
@@ -180,7 +244,7 @@ function parseAnimations(text) {
         const delayMatch = macro.content.match(/delay="(\d+)">>(.*)/s);
         if (delayMatch) {
             const delay = delayMatch[1];
-            const content = delayMatch[2];
+            const content = parseInlineMarkdown(delayMatch[2]);
             const html = `<span class="fade-in" style="animation-delay: ${delay}ms;">${content}</span>`;
             result = result.replace(macro.fullMatch, html);
         }
@@ -192,7 +256,7 @@ function parseAnimations(text) {
         const timeMatch = macro.content.match(/time="(\d+)">>(.*)/s);
         if (timeMatch) {
             const time = timeMatch[1];
-            const content = timeMatch[2];
+            const content = parseInlineMarkdown(timeMatch[2]);
             const html = `<span class="delayed" style="animation-delay: ${time}ms;">${content}</span>`;
             result = result.replace(macro.fullMatch, html);
         }
@@ -201,13 +265,28 @@ function parseAnimations(text) {
     // Parse <<wiggle>>text<</wiggle>>
     const wiggles = extractBetweenDelimiter(result, '<<wiggle>>', '<</wiggle>>');
     for (const macro of wiggles) {
-        const letters = macro.content.split('').map(char => {
-            if (char === ' ') return ' ';
-            const randomDelay = Math.random() * 0.3; // Random delay between 0-0.3s
-            const randomDuration = 0.3 + Math.random() * 0.3; // Random duration between 0.3-0.6s
-            return `<span style="animation-delay: ${randomDelay}s; animation-duration: ${randomDuration}s;">${char}</span>`;
-        }).join('');
-        const html = `<span class="wiggle">${letters}</span>`;
+        // Parse markdown first to get HTML
+        const htmlContent = parseInlineMarkdown(macro.content);
+        
+        // Split into HTML tags and text content
+        // The regex captures tags, and split with capturing group keeps them in the array
+        const parts = htmlContent.split(/(<[^>]+>)/);
+        
+        const processedParts = parts.map(part => {
+            // If it's an HTML tag, keep it as is
+            if (part.startsWith('<')) {
+                return part;
+            }
+            // If it's text content, wrap each character with animation
+            return part.split('').map(char => {
+                if (char === ' ') return ' ';
+                const randomDelay = Math.random() * 0.3; // Random delay between 0-0.3s
+                const randomDuration = 0.3 + Math.random() * 0.3; // Random duration between 0.3-0.6s
+                return `<span style="animation-delay: ${randomDelay}s; animation-duration: ${randomDuration}s;">${char}</span>`;
+            }).join('');
+        });
+        
+        const html = `<span class="wiggle">${processedParts.join('')}</span>`;
         result = result.replace(macro.fullMatch, html);
     }
     
@@ -223,14 +302,40 @@ function parseAnimations(text) {
         }
     }
     
+    // Parse <<button text="label" onclick="js code">>
+    const buttons = extractBetweenDelimiter(result, '<<button', '>>');
+    for (const macro of buttons) {
+        const textMatch = macro.content.match(/text="([^"]+)"/);
+        const onclickMatch = macro.content.match(/onclick="([^"]+)"/);
+        
+        if (textMatch && onclickMatch) {
+            const text = parseInlineMarkdown(textMatch[1]);
+            const onclick = onclickMatch[1].replace(/&quot;/g, '"');
+            const html = `<button class="interactive-button" onclick="${onclick}">${text}</button>`;
+            result = result.replace(macro.fullMatch, html);
+        }
+    }
+    
+    // Parse <<onclick action="...">>text<</onclick>>
+    const onclicks = extractBetweenDelimiter(result, '<<onclick', '<</onclick>>');
+    for (const macro of onclicks) {
+        const actionMatch = macro.content.match(/action="([^"]+)">>(.*)/s);
+        if (actionMatch) {
+            const action = actionMatch[1].replace(/&quot;/g, '"');
+            const content = parseInlineMarkdown(actionMatch[2]);
+            const html = `<span class="clickable-text" onclick="${action}" style="cursor: pointer; text-decoration: underline;">${content}</span>`;
+            result = result.replace(macro.fullMatch, html);
+        }
+    }
+    
     return result;
 }
 
-// Activate typewriter and other JS-based animations
-function activateAnimations() {
-    // Typewriter effect
+
+window.activateAnimations = function() {
+    
     document.querySelectorAll('.typewriter').forEach(elem => {
-        if (elem.dataset.animated) return; // Skip if already animated
+        if (elem.dataset.animated) return; 
         elem.dataset.animated = 'true';
         
         const text = elem.dataset.text;
@@ -238,7 +343,7 @@ function activateAnimations() {
         let index = 0;
         
         elem.textContent = '';
-        elem.style.whiteSpace = 'normal'; // Allow wrapping during typing
+        elem.style.whiteSpace = 'normal'; 
         
         const interval = setInterval(() => {
             if (index < text.length) {
@@ -251,7 +356,6 @@ function activateAnimations() {
     });
 }
 
-// Preload all passages that can be linked from current text
 async function preloadLinkedPassages(parsedText) {
     const tempDiv = document.createElement('div');
     tempDiv.innerHTML = parsedText;
@@ -261,30 +365,30 @@ async function preloadLinkedPassages(parsedText) {
         const { type, target, group } = link.dataset;
         
         if (type === 'direct') {
-            // Preload direct passage
-            fetch(getPassagePath(target)).catch(() => {}); // Silent fail, just for cache
+            
+            fetch(getPassagePath(target)).catch(() => {});
         } else if (type === 'group') {
-            // Preload manifest for group-based links
+
             fetch(`./passages/${group}/manifest.json`).catch(() => {});
         }
     }
 }
 
-// Helper to construct passage file path
+
 function getPassagePath(passageName) {
     const split = passageName.split("_");
     const groupName = split[0];
     
     if (split[1] === "transition") {
         const transitionFileID = split.slice(2).join("_");
-        return `./passages/${groupName}/transitions/${transitionFileID}.md`;
+        return `./passages/${groupName}/transitions/${transitionFileID}.psg`;
     } else {
         const fileID = split.slice(1).join("_");
-        return `./passages/${groupName}/${fileID}.md`;
+        return `./passages/${groupName}/${fileID}.psg`;
     }
 }
 
-// parse links from the markdown file
+
 export function parseLinks(text, currentPassageName) {
     const links = extractBetweenDelimiter(text, "[[", "]]");
     let result = text;
@@ -295,7 +399,7 @@ export function parseLinks(text, currentPassageName) {
         const linkText = target ? displayText : link.content;
         let targetValue = target || link.content;
         
-        // Check if it's a group-based link (starts with @)
+
         const isGroupBased = targetValue.startsWith("@");
         
         if (isGroupBased) {
@@ -309,9 +413,9 @@ export function parseLinks(text, currentPassageName) {
                 data-from-id="${currentPassageID}">${linkText}</a>`;
             result = result.replace(link.fullMatch, linkHTML);
         } else {
-            // Direct link - add current group if no group specified
+
             if (!targetValue.includes("_")) {
-                // Just an ID, use current group
+
                 targetValue = `${currentGroup}_${targetValue}`;
             }
             
@@ -325,12 +429,10 @@ export function parseLinks(text, currentPassageName) {
     return result;
 }
 
-// Load manifest and select a passage from group
 export async function selectPassageFromGroup(groupName) {
     try {
         const manifest = await fetch(`./passages/${groupName}/manifest.json`).then(r => r.json());
         
-        // Filter out visited passages
         const available = manifest.passages.filter(id => {
             const fullPassageName = `${groupName}_${id}`;
             return !gameState.visitedPassages.has(fullPassageName);
@@ -349,15 +451,14 @@ export async function selectPassageFromGroup(groupName) {
     }
 }
 
-// Handle link clicks with transition checking
 export async function handleLinkClick(linkElement) {
     const { type, target, group, fromGroup, fromId } = linkElement.dataset;
     
     if (type === "direct") {
-        // Direct link - no transitions, just load
+
         return target;
     } else if (type === "group") {
-        // Group-based random selection
+
         const selectedPassage = await selectPassageFromGroup(group);
         if (!selectedPassage) {
             console.error(`Could not select passage from group "${group}"`);
@@ -367,16 +468,14 @@ export async function handleLinkClick(linkElement) {
         if (fromId && fromGroup) {
             const selectedID = selectedPassage.split("_").slice(1).join("_");
             const transitionFileName = `T-${fromId}-${selectedID}`;
-            const transitionPath = `./passages/${fromGroup}/transitions/${transitionFileName}.md`;
+            const transitionPath = `./passages/${fromGroup}/transitions/${transitionFileName}.psg`;
             
             try {
                 const response = await fetch(transitionPath, { method: 'HEAD' });
                 if (response.ok) {
                     return `${fromGroup}_transition_${transitionFileName}`;
                 }
-            } catch (error) {
-                // No transition, fall through
-            }
+            } catch (error) {}
         }
         
         return selectedPassage;
@@ -395,7 +494,22 @@ document.addEventListener('click', async (click) => {
     }
 });
 
-// Load starting passage on page load
+
 window.addEventListener('DOMContentLoaded', () => {
-    renderPassage('menu_title_screen');
+
+    const hash = window.location.hash.slice(1); 
+    if (hash) {
+        renderPassage(hash);
+    } else {
+        renderPassage('menu_title_screen');
+    }
 });
+
+
+window.changeBgColor = (color) => {
+    document.body.style.backgroundColor = color;
+};
+
+window.changeTextColor = (color) => {
+    document.body.style.color = color;
+};
