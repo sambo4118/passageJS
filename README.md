@@ -1,5 +1,10 @@
-you could read through this whole boring regular readme page or you could:  
-***[play the interactive readme](http://localhost:3000/#menu_title_screen)*** in PassageJS right now!
+**You could read through this regular README, or...**
+
+**[Play the Interactive README](https://sambo4118.github.io/passageJS/)** 
+
+*(Run `npm start` first to launch the interactive version)*
+
+---
 
 # PassageJS
 
