@@ -454,11 +454,11 @@ A hidden door reveals itself!
 Contributions are welcome! Whether you're fixing bugs, adding features, or improving documentation, your help is appreciated.
 
 **Ways to contribute:**
-- 🐛 Report bugs or suggest features via GitHub Issues
-- 💻 Submit pull requests for improvements
-- 📝 Help improve documentation and examples
-- 🎨 Create new animation macros or transitions
-- 💬 Share your stories and use cases
+- Report bugs or suggest features via GitHub Issues
+- Submit pull requests for improvements
+- Help improve documentation and examples
+- Create new animation macros or transitions
+- Share your stories and use cases
 
 See [CONTRIBUTING.md](CONTRIBUTING.md) for detailed guidelines, or run `npm start` and check out the **interactive contributor guide** in the app.
 
