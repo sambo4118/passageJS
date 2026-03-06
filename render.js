@@ -21,6 +21,82 @@ export const gameState = {
     currentPassage: null
 };
 
+// Save game state to localStorage
+export function saveGame(slotName = 'autosave') {
+    const saveData = {
+        currentPassage: gameState.currentPassage,
+        visitedPassages: Array.from(gameState.visitedPassages),
+        rngSeed: gameState.rng.seed,
+        timestamp: Date.now()
+    };
+    
+    try {
+        localStorage.setItem(`passagejs_save_${slotName}`, JSON.stringify(saveData));
+        console.log(`Game saved to slot: ${slotName}`);
+        return true;
+    } catch (error) {
+        console.error('Failed to save game:', error);
+        return false;
+    }
+}
+
+// Load game state from localStorage
+export async function loadGame(slotName = 'autosave') {
+    try {
+        const saveDataStr = localStorage.getItem(`passagejs_save_${slotName}`);
+        if (!saveDataStr) {
+            console.warn(`No save found in slot: ${slotName}`);
+            return false;
+        }
+        
+        const saveData = JSON.parse(saveDataStr);
+        
+        // Restore game state
+        gameState.currentPassage = saveData.currentPassage;
+        gameState.visitedPassages = new Set(saveData.visitedPassages);
+        gameState.rng = new SeededRandom(saveData.rngSeed);
+        
+        // Render the saved passage
+        await renderPassage(saveData.currentPassage);
+        
+        console.log(`Game loaded from slot: ${slotName}`);
+        return true;
+    } catch (error) {
+        console.error('Failed to load game:', error);
+        return false;
+    }
+}
+
+// Get list of all save slots
+export function getSaveSlots() {
+    const saves = [];
+    for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i);
+        if (key.startsWith('passagejs_save_')) {
+            const slotName = key.replace('passagejs_save_', '');
+            const saveData = JSON.parse(localStorage.getItem(key));
+            saves.push({
+                slotName,
+                currentPassage: saveData.currentPassage,
+                timestamp: saveData.timestamp,
+                date: new Date(saveData.timestamp).toLocaleString()
+            });
+        }
+    }
+    return saves.sort((a, b) => b.timestamp - a.timestamp);
+}
+
+// Delete a save slot
+export function deleteSave(slotName) {
+    localStorage.removeItem(`passagejs_save_${slotName}`);
+    console.log(`Deleted save slot: ${slotName}`);
+}
+
+// Check if a save exists
+export function hasSave(slotName = 'autosave') {
+    return localStorage.getItem(`passagejs_save_${slotName}`) !== null;
+}
+
 export function displayMainText(text) {
     const displayElement = document.getElementById("display");
     if (!displayElement) return;
@@ -86,6 +162,9 @@ export async function renderPassage(passageName) {
     
     gameState.currentPassage = passageName;
     gameState.visitedPassages.add(passageName);
+    
+    // Autosave after each passage
+    saveGame('autosave');
     
     // Preload linked passages
     preloadLinkedPassages(text);
@@ -318,5 +397,5 @@ document.addEventListener('click', async (click) => {
 
 // Load starting passage on page load
 window.addEventListener('DOMContentLoaded', () => {
-    renderPassage('intelectualization_I1');
+    renderPassage('menu_title_screen');
 });

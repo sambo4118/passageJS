@@ -1,12 +1,33 @@
 {
-  "name": "whatiwillido",
+  "name": "passagejs",
   "version": "1.0.0",
-  "private": true,
+  "description": "A dynamic, Twine-like narrative engine with markdown support, custom animations, and smart transitions",
+  "main": "server.js",
   "scripts": {
     "start": "node server.js",
     "dev": "node server.js",
     "manifests": "node generate-manifests.js"
   },
+  "keywords": [
+    "narrative",
+    "interactive-fiction",
+    "storytelling",
+    "markdown",
+    "twine",
+    "game-engine",
+    "passages",
+    "visual-novel"
+  ],
+  "author": "",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/YOUR_USERNAME/passagejs.git"
+  },
+  "bugs": {
+    "url": "https://github.com/YOUR_USERNAME/passagejs/issues"
+  },
+  "homepage": "https://github.com/YOUR_USERNAME/passagejs#readme",
   "engines": {
     "node": ">=18"
   }

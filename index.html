@@ -70,10 +70,152 @@
         white-space: nowrap;
         display: inline-block;
       }
+      
+      /* Persistent controls */
+      #persistent-controls {
+        position: fixed;
+        top: 12px;
+        right: 12px;
+        display: flex;
+        gap: 8px;
+        z-index: 1000;
+      }
+      
+      #persistent-controls button {
+        padding: 8px 16px;
+        background: #2d3139;
+        border: 1px solid #404552;
+        border-radius: 4px;
+        color: #e8e8e8;
+        cursor: pointer;
+        font-size: 14px;
+      }
+      
+      #persistent-controls button:hover {
+        background: #363a44;
+      }
+      
+      /* Save list dropdown */
+      #save-list {
+        display: none;
+        position: fixed;
+        top: 52px;
+        right: 12px;
+        width: 300px;
+        padding: 10px;
+        background: #1a1d24;
+        border: 1px solid #404552;
+        border-radius: 4px;
+        max-height: 400px;
+        overflow-y: auto;
+        z-index: 999;
+      }
+      
+      .save-item {
+        padding: 8px;
+        margin-bottom: 8px;
+        background: #1a1d24;
+        border-radius: 4px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+      }
+      
+      .save-item button {
+        margin-left: 8px;
+        padding: 4px 10px;
+        font-size: 12px;
+        background: #2d3139;
+        border: 1px solid #404552;
+        border-radius: 4px;
+        color: #e8e8e8;
+        cursor: pointer;
+      }
+      
+      .save-item button:hover {
+        background: #363a44;
+      }
     </style>
     <script type="module" src="./render.js"></script>
+    <script type="module">
+      import { saveGame, loadGame, getSaveSlots, deleteSave } from './render.js';
+      
+      window.addEventListener('DOMContentLoaded', () => {
+        // Save button
+        document.getElementById('save-btn').addEventListener('click', () => {
+          const slotName = prompt('Enter save name:', 'quicksave');
+          if (slotName) {
+            if (saveGame(slotName)) {
+              alert(`Game saved to: ${slotName}`);
+            }
+          }
+        });
+        
+        // Load button - toggles save list
+        document.getElementById('load-btn').addEventListener('click', () => {
+          const saveList = document.getElementById('save-list');
+          if (saveList.style.display === 'block') {
+            saveList.style.display = 'none';
+          } else {
+            saveList.style.display = 'block';
+            updateSaveList();
+          }
+        });
+        
+        function updateSaveList() {
+          const saveList = document.getElementById('save-list');
+          const saves = getSaveSlots();
+          
+          if (saves.length === 0) {
+            saveList.innerHTML = '<p style="color: #888;">No saves found</p>';
+            return;
+          }
+          
+          saveList.innerHTML = saves.map(save => `
+            <div class="save-item">
+              <div>
+                <strong>${save.slotName}</strong><br>
+                <small style="color: #888;">${save.date}</small>
+              </div>
+              <div>
+                <button onclick="window.loadSaveSlot('${save.slotName}')">Load</button>
+                <button onclick="window.deleteSaveSlot('${save.slotName}')">Delete</button>
+              </div>
+            </div>
+          `).join('');
+        }
+        
+        window.loadSaveSlot = async (slotName) => {
+          await loadGame(slotName);
+          document.getElementById('save-list').style.display = 'none';
+        };
+        
+        window.deleteSaveSlot = (slotName) => {
+          if (confirm(`Delete save "${slotName}"?`)) {
+            deleteSave(slotName);
+            updateSaveList();
+          }
+        };
+        
+        // Close save list when clicking outside
+        document.addEventListener('click', (e) => {
+          const saveList = document.getElementById('save-list');
+          const loadBtn = document.getElementById('load-btn');
+          if (saveList.style.display === 'block' && 
+              !saveList.contains(e.target) && 
+              e.target !== loadBtn) {
+            saveList.style.display = 'none';
+          }
+        });
+      });
+    </script>
   </head>
   <body>
+    <div id="persistent-controls">
+      <button id="save-btn">Save</button>
+      <button id="load-btn">Load</button>
+    </div>
+    <div id="save-list"></div>
     <div id="display"></div>
   </body>
 </html>
