@@ -19,7 +19,8 @@ a:hover {
 
 /* Animation styles */
 .fade-in {
-  animation: fadeIn 1s ease-in;
+  opacity: 0;
+  animation: fadeIn 1s ease-in forwards;
 }
 
 @keyframes fadeIn {
@@ -74,10 +75,22 @@ a:hover {
   40% { transform: translateY(0); }
 }
 
-.typewriter {
-  overflow: hidden;
-  white-space: nowrap;
+.wave {
   display: inline-block;
+}
+
+.wave > span {
+  display: inline-block;
+  animation: wave 0.6s ease-in-out infinite;
+}
+
+@keyframes wave {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-12px); }
+}
+
+.typewriter {
+  display: inline;
 }
 
 /* Interactive buttons */

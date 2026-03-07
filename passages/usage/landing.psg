@@ -4,6 +4,15 @@
 
 This page documents all available macros for creating dynamic, interactive passages.
 
+## Quick Reference - Animations
+
+- **`<<wiggle>>`** - Chaotic shaking: <<wiggle>>wiggle animation!<</wiggle>>
+- **`<<hop>>`** - Bouncing with pauses: <<hop>>hop animation!<</hop>>
+- **`<<wave>>`** - Smooth flowing wave: <<wave>>wave animation!<</wave>>
+- **`<<typewriter>>`** - Types out (with markdown!): <<onclick text="click to see">><<typewriter speed="30">>typewriter **animation**!<</typewriter>><</onclick>>
+- **`<<fadein>>`** - Fades in: <<onclick text="click to see">><<fadein delay="300">>fade in animation!<</fadein>><</onclick>>
+- **`<<delayed>>`** - Appears suddenly: <<onclick text="click to see">><<delayed time="300">>delayed animation!<</delayed>><</onclick>>
+
 ---
 
 ## Background & Styling
@@ -42,6 +51,8 @@ Changes text color globally or for a specific block.
 <<textcolor color="#ff6b6b">>Only this text is red<</textcolor>>
 ```
 
+**Live demo:**<<textcolor color="#ff6b6b">>This text is red<</textcolor>> | <<textcolor color="#6bff6b">>This is green<</textcolor>> | <<textcolor color="#6b6bff">>This is blue<</textcolor>>
+
 **Behavior:**
 - Unclosed form (`<<textcolor ...>>`) sets global default page text color
 - Closed form (`<<textcolor ...>>...<</textcolor>>`) colors only wrapped content
@@ -65,7 +76,59 @@ Makes text shake with a chaotic, anxious animation. Each letter moves independen
 <<wiggle>>**Bold and shaking!**<</wiggle>>
 ```
 
+**Live demo:** <<wiggle>>This text shakes nervously<</wiggle>>
+
 **Supports:** Markdown formatting (bold, italic, links, etc.)
+
+---
+
+### `<<hop>>`
+Makes text hop up and down with pauses between hops, like a bouncing ball. Great for playful or energetic text.
+
+**Syntax:**
+```
+<<hop>>text content<</hop>>
+<<hop speed="milliseconds">>text content<</hop>>
+```
+
+**Parameters:**
+- `speed` - Milliseconds between each character's hop (default: 100)
+
+**Examples:**
+```
+<<hop>>Bouncy text!<</hop>>
+<<hop speed="150">>Slower hops<</hop>>
+<<hop speed="50">>Fast hops!<</hop>>
+```
+
+**Live demo:** <<hop>>Bouncy text!<</hop>> | <<hop speed="200">>Slower hops<</hop>>
+
+**Supports:** Markdown formatting
+
+---
+
+### `<<wave>>`
+Creates a smooth wave animation where characters flow up and down continuously.
+
+**Syntax:**
+```
+<<wave>>text content<</wave>>
+<<wave speed="milliseconds">>text content<</wave>>
+```
+
+**Parameters:**
+- `speed` - Milliseconds between each character starting (default: 100)
+
+**Examples:**
+```
+<<wave>>Wave animation!<</wave>>
+<<wave speed="150">>Slower wave<</wave>>
+<<wave speed="50">>Fast wave!<</wave>>
+```
+
+**Live demo:** <<wave>>Wave animation!<</wave>> | <<wave speed="150">>Slower wave<</wave>>
+
+**Supports:** Markdown formatting
 
 ---
 
@@ -83,10 +146,17 @@ Reveals text letter by letter, like it's being typed.
 **Examples:**
 ```
 <<typewriter speed="50">>This types out slowly<</typewriter>>
-<<typewriter speed="20">>This types faster<</typewriter>>
+<<typewriter speed="20">>This types **faster**<</typewriter>>
+<<typewriter speed="30">>With *italic* and [links](somewhere)!<</typewriter>>
 ```
 
-**Note:** Does not support markdown inside (breaks character-by-character parsing)
+**Live demos:** 
+
+<<onclick text="Click to start typing">><<typewriter speed="50">>This types out character by character<</typewriter>><</onclick>>
+
+<<onclick text="Click for formatted typing">><<typewriter speed="40">>This text has **bold** and *italic* formatting!<</typewriter>><</onclick>>
+
+**Supports:** Markdown formatting (bold, italic, links, etc.)
 
 ---
 
@@ -106,6 +176,8 @@ Text fades in gradually after a delay.
 <<fadein delay="1000">>Appears after 1 second<</fadein>>
 <<fadein delay="2500">>This has **bold** text<</fadein>>
 ```
+
+**Live demo:** <<onclick text="Click to see fade in">><<fadein delay="500">>I fade in after half a second<</fadein>><</onclick>>
 
 **Supports:** Markdown formatting
 
@@ -127,6 +199,8 @@ Text appears suddenly (no fade) after a delay.
 <<delayed time="2000">>Pops in after 2 seconds<</delayed>>
 <<delayed time="1500">>Surprise [link](somewhere)!</</delayed>>
 ```
+
+**Live demo:** <<onclick text="Click to see delayed appear">><<delayed time="1000">>I appear suddenly after 1 second!<</delayed>><</onclick>>
 
 **Supports:** Markdown formatting
 
@@ -190,6 +264,8 @@ Creates an interactive button that runs JavaScript when clicked.
 <<button text="**Bold Button**" onclick="console.log('clicked')" >>
 ```
 
+**Live demo:** <<button text="Click Me!" onclick="alert('Button clicked!')">> <<button text="Change BG" onclick="window.changeBgColor('#2a2a4a')">>
+
 **Supports:** Markdown in button text
 
 ---
@@ -211,7 +287,7 @@ Makes text clickable and runs JavaScript when clicked.
 <<onclick action="console.log('test')" >>[Check the **console**]<</onclick>>
 ```
 
-**Supports:** Markdown in clickable text
+**Live demo:** <<onclick action="alert('You clicked it!')">>Click this text to see an alert<</onclick>>
 
 ---
 
@@ -264,17 +340,31 @@ You can nest macros for complex effects:
 <<onclick text="What happens next?">>
   <<typewriter speed="30">>The story continues...<</typewriter>>
 <</onclick>>
+
+<<textcolor color="#ff6b6b">>
+  <<wave>>Red waves!<</wave>>
+<</textcolor>>
 ```
+
+**Live examples:**
+
+<<onclick text="Click to see fade + hop combo">><<fadein delay="500">><<hop>>This fades in, then hops!<</hop>><</fadein>><</onclick>>
+
+<<textcolor color="#6bff6b">><<wave speed="80">>Green wave animation<</wave>><</textcolor>>
+
+<<wave>>Surprise! A wave appears!<</wave>>
 
 ---
 
 ## Tips
 
 1. **Use animations sparingly** - Too many can overwhelm readers
-2. **Test onclick reveal flows carefully** - Make sure the progression feels natural
-3. **Markdown works almost everywhere** - Except in typewriter macro
-4. **Both quote styles work** - Use `"..."` or `'...'` in parameters
-5. **JavaScript safety** - Be careful with onclick/action parameters
+2. **Choose the right animation** - `<<wiggle>>` for anxiety, `<<hop>>` for playfulness, `<<wave>>` for smooth flow
+3. **Test onclick reveal flows carefully** - Make sure the progression feels natural
+4. **Markdown works everywhere** - All animation macros now support bold, italic, links, etc.
+5. **Both quote styles work** - Use `"..."` or `'...'` in parameters
+6. **Speed parameter tip** - Lower values = faster animations (50ms is fast, 200ms is slow)
+7. **JavaScript safety** - Be careful with onclick/action parameters
 
 ---
 

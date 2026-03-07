@@ -428,7 +428,10 @@ function parseAnimations(text, context = {}, depth = 0) {
         if (speedMatch) {
             const speed = speedMatch[1];
             const content = speedMatch[2];
-            const html = `<span class="typewriter" data-speed="${speed}" data-text="${content.replace(/"/g, '&quot;')}"></span>`;
+            // Process markdown in typewriter content
+            const processedContent = renderInlineMacroBody(content, context, depth);
+            // Store the HTML structure for smart typing
+            const html = `<span class="typewriter" data-speed="${speed}" data-html="${processedContent.replace(/"/g, '&quot;')}"></span>`;
             result = result.replace(macro.fullMatch, html);
         }
     }
@@ -472,6 +475,47 @@ function parseAnimations(text, context = {}, depth = 0) {
         const html = `<span class="hop">${processedParts.join('')}</span>`;
         result = result.replace(macro.fullMatch, html);
     } 
+    
+    //parse <<wave speed="100">>text<</wave>> or <<wave>>text<</wave>>
+    const waves = extractBetweenDelimiter(result, '<<wave', '<</wave>>');
+    for (const macro of waves) {
+        const speedMatch = macro.content.match(/speed="(\d+)">>(.*)/s);
+        let speed = 100;
+        let textContent = macro.content;
+        
+        if (speedMatch) {
+            speed = parseInt(speedMatch[1]);
+            textContent = speedMatch[2];
+        } else if (macro.content.startsWith('>>')) {
+            textContent = macro.content.slice(2);
+        }
+        
+        const htmlContent = renderInlineMacroBody(textContent, context, depth);
+        
+        // Decode HTML entities that were encoded during markdown processing
+        const decodedContent = htmlContent
+            .replace(/&#39;/g, "'")
+            .replace(/&quot;/g, '"')
+            .replace(/&amp;/g, '&');
+        
+        const parts = decodedContent.split(/(<[^>]+>)/);
+        
+        let charIndex = 0;
+        const processedParts = parts.map(part => {
+            if (part.startsWith('<')) {
+                return part;
+            }
+            return part.split('').map(char => {
+                if (char === ' ') return ' ';
+                const delay = charIndex * (speed / 1000);
+                charIndex++;
+                return `<span style="animation-delay: ${delay}s;">${char}</span>`;
+            }).join('');
+        });
+        
+        const html = `<span class="wave">${processedParts.join('')}</span>`;
+        result = result.replace(macro.fullMatch, html);
+    }
 
 
     // Parse <<button text="label" onclick="js code">>
@@ -521,7 +565,7 @@ function parseAnimations(text, context = {}, depth = 0) {
             const currentId = `onclick-reveal-${runtimeState.onclickRevealCounter++}`;
             const autoReveal = !hasTriggerText;
 
-            let onclickCode = `var el = document.getElementById('${currentId}'); el.style.display='${displayType}'; el.style.animation='fadeInText 0.3s ease-in'; this.style.display='none'; window.activateAnimations();`;
+            let onclickCode = `var el = document.getElementById('${currentId}'); el.style.display='${displayType}'; this.style.display='none'; el.querySelectorAll('.typewriter').forEach(function(tw) { delete tw.dataset.animated; }); el.querySelectorAll('.fade-in, .delayed').forEach(function(elem) { var clone = elem.cloneNode(true); elem.parentNode.replaceChild(clone, elem); }); window.activateAnimations();`;
             if (hasAction) {
                 onclickCode += ` try { ${action} } catch (error) { console.error('Onclick action failed:', error); }`;
             }
@@ -552,27 +596,83 @@ function parseAnimations(text, context = {}, depth = 0) {
 }
 
 
+// Helper function to get inherited animation delay from parent elements
+// Use this for any JavaScript-driven animations that need to respect parent timing
+function getInheritedAnimationDelay(element) {
+    let maxDelay = 0;
+    let parent = element.parentElement;
+    while (parent && parent !== document.body) {
+        const animDelay = parent.style.animationDelay;
+        if (animDelay) {
+            maxDelay = Math.max(maxDelay, parseInt(animDelay) || 0);
+        }
+        parent = parent.parentElement;
+    }
+    return maxDelay;
+}
+
 window.activateAnimations = function() {
     
     document.querySelectorAll('.typewriter').forEach(elem => {
         if (elem.dataset.animated) return; 
         elem.dataset.animated = 'true';
         
-        const text = elem.dataset.text;
+        const htmlContent = elem.dataset.html;
         const speed = parseInt(elem.dataset.speed) || 50;
-        let index = 0;
+        const startDelay = getInheritedAnimationDelay(elem);
         
-        elem.textContent = '';
-        elem.style.whiteSpace = 'normal'; 
-        
-        const interval = setInterval(() => {
-            if (index < text.length) {
-                elem.textContent += text[index];
-                index++;
-            } else {
-                clearInterval(interval);
+        // Start typing after the delay
+        setTimeout(() => {
+            // Create a temporary container to parse the HTML
+            const tempDiv = document.createElement('div');
+            tempDiv.innerHTML = htmlContent;
+            
+            // Clone the structure into the typewriter element
+            elem.innerHTML = tempDiv.innerHTML;
+            elem.style.whiteSpace = 'normal';
+            
+            // Find all text nodes and hide their content initially
+            const textNodes = [];
+            const walker = document.createTreeWalker(
+                elem,
+                NodeFilter.SHOW_TEXT,
+                null,
+                false
+            );
+            
+            let node;
+            while (node = walker.nextNode()) {
+                if (node.textContent.trim().length > 0) {
+                    textNodes.push({
+                        node: node,
+                        fullText: node.textContent,
+                        currentIndex: 0
+                    });
+                    node.textContent = '';
+                }
             }
-        }, speed);
+            
+            // Type out all text nodes character by character
+            let globalIndex = 0;
+            let currentNodeIndex = 0;
+            
+            const interval = setInterval(() => {
+                if (currentNodeIndex >= textNodes.length) {
+                    clearInterval(interval);
+                    return;
+                }
+                
+                const currentTextNode = textNodes[currentNodeIndex];
+                
+                if (currentTextNode.currentIndex < currentTextNode.fullText.length) {
+                    currentTextNode.node.textContent += currentTextNode.fullText[currentTextNode.currentIndex];
+                    currentTextNode.currentIndex++;
+                } else {
+                    // Move to next text node
+                    currentNodeIndex++;
+                }
+            }, speed);
+        }, startDelay);
     });
 }
 
