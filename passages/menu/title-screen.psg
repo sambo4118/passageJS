@@ -41,7 +41,7 @@ This creates smooth narrative connections between random passages without needin
 Woah, the page *revealed* something when you clicked?  
 thats crazy <<onclick text="click again">>
 you made it to an example story! congrats, isn't this a great read me?  
-[[**yeah it's awesome!**|example/title/*]]  
+[[<<hop>>yeah it's awesome!<</hop>>|example/title/*]]  
 [[no! this sucks|example/evil/this-sucks]]
 <</onclick>>
 <</onclick>>

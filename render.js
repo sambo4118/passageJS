@@ -432,7 +432,48 @@ function parseAnimations(text, context = {}, depth = 0) {
             result = result.replace(macro.fullMatch, html);
         }
     }
-    
+    //parse <<hop speed="100">>text<</hop>> or <<hop>>text<</hop>>
+    const hops = extractBetweenDelimiter(result, '<<hop', '<</hop>>');   
+    for (const macro of hops) {
+        const speedMatch = macro.content.match(/speed="(\d+)">>(.*)/s);
+        let speed = 100;
+        let textContent = macro.content;
+        
+        if (speedMatch) {
+            speed = parseInt(speedMatch[1]);
+            textContent = speedMatch[2];
+        } else if (macro.content.startsWith('>>')) {
+            textContent = macro.content.slice(2);
+        }
+        
+        const htmlContent = renderInlineMacroBody(textContent, context, depth);
+        
+        // Decode HTML entities that were encoded during markdown processing
+        const decodedContent = htmlContent
+            .replace(/&#39;/g, "'")
+            .replace(/&quot;/g, '"')
+            .replace(/&amp;/g, '&');
+        
+        const parts = decodedContent.split(/(<[^>]+>)/);
+        
+        let charIndex = 0;
+        const processedParts = parts.map(part => {
+            if (part.startsWith('<')) {
+                return part;
+            }
+            return part.split('').map(char => {
+                if (char === ' ') return ' ';
+                const delay = charIndex * (speed / 1000);
+                charIndex++;
+                return `<span style="animation-delay: ${delay}s;">${char}</span>`;
+            }).join('');
+        });
+        
+        const html = `<span class="hop">${processedParts.join('')}</span>`;
+        result = result.replace(macro.fullMatch, html);
+    } 
+
+
     // Parse <<button text="label" onclick="js code">>
     const buttons = extractBetweenDelimiter(result, '<<button', '>>');
     for (const macro of buttons) {

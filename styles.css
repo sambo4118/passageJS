@@ -59,6 +59,21 @@ a:hover {
   100% { transform: translate(0, 0) rotate(0deg); }
 }
 
+.hop {
+  display: inline-block;
+}
+
+.hop > span {
+  display: inline-block;
+  animation: hop 1.2s ease-in-out infinite;
+}
+
+@keyframes hop {
+  0%, 100% { transform: translateY(0); }
+  20% { transform: translateY(-8px); }
+  40% { transform: translateY(0); }
+}
+
 .typewriter {
   overflow: hidden;
   white-space: nowrap;
