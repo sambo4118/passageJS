@@ -1,0 +1,388 @@
+<<bgcolor color='#1f1f1f'>>
+
+# Variables, Calculations, and Conditionals
+
+PassageJS includes a powerful variable system for creating interactive stories with persistent state, calculations, and conditional content.
+
+---
+
+## Variable Declaration
+
+### `<<var:varname>>`
+Declares or updates a variable with a value.
+
+**Syntax:**
+```
+<<var:variableName>>value<</var>>
+<<var:variableName type="type">>value<</var>>
+<<var:variableName type="type" default="value">>value<</var>>
+```
+
+**Types:**
+- **`string`** (default) - Text values
+- **`number`** - Numeric values
+- **`boolean`** - `true` or `false`
+- **`json`** - JSON objects/arrays
+
+**Examples:**
+```
+<<var:playerName>>Alice<</var>>
+<<var:health type="number">>100<</var>>
+<<var:hasKey type="boolean">>true<</var>>
+<<var:inventory type="json">>["sword", "shield"]<</var>>
+```
+
+**Important:** Variables declared inside `<<onclick>>` or `<<delayed>>` macros are NOT set until the user clicks/triggers them.
+
+**Live Example:**
+
+<<var:exampleName>>World<</var>>
+Hello, ${exampleName}!
+
+<<onclick text="Change to 'User'">>
+<<var:exampleName>>User<</var>>
+<</onclick>>
+
+---
+
+## Variable Substitution
+
+### `${varname}`
+Substitutes the current value of a variable into the text.
+
+**Syntax:**
+```
+${variableName}
+```
+
+**Examples:**
+```
+<<var:name>>Bob<</var>>
+Hello, ${name}!
+```
+
+Displays: Hello, Bob!
+
+**Dynamic Updates:** When variables change (e.g., in an onclick), ALL `${varname}` displays on the page automatically update to show the new value.
+
+---
+
+## Calculations
+
+### `<<calc>>`
+Evaluates mathematical expressions with variable substitution.
+
+**Syntax:**
+```
+<<calc>>expression<</calc>>
+```
+
+**Supported Operations:**
+- Basic math: `+`, `-`, `*`, `/`, `%`, `()`
+- Math functions: `Math.abs()`, `Math.ceil()`, `Math.floor()`, `Math.max()`, `Math.min()`, `Math.pow()`, `Math.sqrt()`, `Math.round()`, `Math.random()`, etc.
+- Constants: `Math.PI`, `Math.E`
+- Date: `Date.now()` (current timestamp in milliseconds)
+
+**Examples:**
+```
+<<var:x type="number">>10<</var>>
+<<var:y type="number">>5<</var>>
+
+Sum: <<calc>>${x} + ${y}<</calc>>
+Product: <<calc>>${x} * ${y}<</calc>>
+Power: <<calc>>Math.pow(${x}, 2)<</calc>>
+Random: <<calc>>Math.floor(Math.random() * 100)<</calc>>
+```
+
+**Storing Calculations:**
+```
+<<var:result type="number">><<calc>>${x} + ${y}<</calc>><</var>>
+Result is: ${result}
+```
+
+**Security:** Calculations are sandboxed and only allow safe math operations. No access to `window`, `document`, or other potentially dangerous functions.
+
+**Live Example:**
+
+<<var:num1 type="number">>7<</var>>
+<<var:num2 type="number">>3<</var>>
+
+${num1} + ${num2} = <<calc>>${num1} + ${num2}<</calc>>
+
+<<onclick text="Change to 15 + 8">>
+<<var:num1 type="number">>15<</var>>
+<<var:num2 type="number">>8<</var>>
+<</onclick>>
+
+---
+
+## Conditionals
+
+### `<<if:varname comparison value>>`
+Conditionally displays content based on variable comparisons.
+
+**Syntax:**
+```
+<<if:variableName comparison value>>
+  content to show if true
+<</if>>
+```
+
+**Comparison Operators:**
+- **`is`** - Equals (text or number)
+- **`is not`** - Not equals
+- **`less than`** - Numeric less than
+- **`greater than`** - Numeric greater than
+- **`at least`** - Numeric greater than or equal
+- **`at most`** - Numeric less than or equal
+
+**Examples:**
+```
+<<var:score type="number">>85<</var>>
+
+<<if:score at least 90>>
+  Excellent!
+<</if>>
+
+<<if:score at least 70>>
+  Passed!
+<</if>>
+
+<<if:score less than 70>>
+  Failed.
+<</if>>
+```
+
+**String Comparisons:**
+```
+<<var:choice>>continue<</var>>
+
+<<if:choice is continue>>
+  You chose to continue!
+<</if>>
+
+<<if:choice is not quit>>
+  Still playing!
+<</if>>
+```
+
+**Boolean:**
+```
+<<var:hasKey type="boolean">>true<</var>>
+
+<<if:hasKey is true>>
+  You have the key!
+<</if>>
+```
+
+**Note:** Uses text-based operators to avoid conflicts with HTML/markdown syntax.
+
+**Live Example:**
+
+<<var:testScore type="number">>75<</var>>
+
+Your score: ${testScore}
+
+<<if:testScore at least 90>>
+Grade: A
+<</if>>
+
+<<if:testScore at least 80>>
+Grade: B
+<</if>>
+
+<<if:testScore at least 70>>
+Grade: C
+<</if>>
+
+<<if:testScore less than 70>>
+Grade: F
+<</if>>
+
+<<onclick text="Set score to 95">>
+<<var:testScore type="number">>95<</var>>
+<</onclick>>
+
+<<onclick text="Set score to 60">>
+<<var:testScore type="number">>60<</var>>
+<</onclick>>
+
+---
+
+## Dynamic Variables in Onclick
+
+Variables can be set and updated dynamically inside `<<onclick>>` macros. All variable displays on the page will automatically update.
+
+**Example:**
+```
+<<var:counter type="number">>0<</var>>
+Counter: ${counter}
+
+<<onclick text="Increment">>
+  <<var:counter type="number">><<calc>>${counter} + 1<</calc>><</var>>
+<</onclick>>
+```
+
+Each click increments the counter, and the `${counter}` display updates immediately.
+
+**Multiple Variables:**
+```
+<<var:name>>Alice<</var>>
+<<var:score type="number">>0<</var>>
+
+**Name:** ${name}  
+**Score:** ${score}
+
+<<onclick text="Switch to Bob (+10 points)">>
+  <<var:name>>Bob<</var>>
+  <<var:score type="number">><<calc>>${score} + 10<</calc>><</var>>
+<</onclick>>
+```
+
+**Live Example:**
+
+<<var:clickCount type="number">>0<</var>>
+Clicks: ${clickCount}
+
+<<onclick text="Click me!">>
+<<var:clickCount type="number">><<calc>>${clickCount} + 1<</calc>><</var>>
+<</onclick>>
+
+---
+
+## Persistence
+
+Variables automatically persist across passages and survive save/load.
+
+**Example Flow:**
+```
+Passage 1:
+<<var:questProgress type="number">>25<</var>>
+Quest Progress: ${questProgress}%
+[[Next|passage2]]
+
+Passage 2:
+Quest Progress: ${questProgress}%  (still shows 25%)
+<<var:questProgress type="number">>50<</var>>
+[[Continue|passage3]]
+
+Passage 3:
+Final Progress: ${questProgress}%  (now shows 50%)
+```
+
+Variables are stored in `gameState.variables` and included in autosave/manual saves.
+
+---
+
+## Complete Example: Health and Potion System
+
+```
+<<var:playerName>>Hero<</var>>
+<<var:health type="number">>75<</var>>
+<<var:maxHealth type="number">>100<</var>>
+<<var:hasPotion type="boolean">>true<</var>>
+
+# Adventure Status
+
+**Name:** ${playerName}  
+**Health:** ${health} / ${maxHealth}
+
+<<if:hasPotion is true>>
+  <<onclick text="Use Potion">>
+    <<var:health type="number">><<calc>>Math.min(${health} + 50, ${maxHealth})<</calc>><</var>>
+    <<var:hasPotion type="boolean">>false<</var>>
+    
+    *You drink the potion. Health restored!*
+    
+    <<if:health at least ${maxHealth}>>
+      You're at full health!
+    <</if>>
+  <</onclick>>
+<</if>>
+
+<<if:hasPotion is false>>
+  *No potions remaining*
+<</if>>
+
+<<if:health less than 30>>
+  **Warning:** Health critical!
+<</if>>
+```
+
+**Live Version:**
+
+<<var:demoPlayerName>>Hero<</var>>
+<<var:demoHealth type="number">>75<</var>>
+<<var:demoMaxHealth type="number">>100<</var>>
+<<var:demoHasPotion type="boolean">>true<</var>>
+
+**Name:** ${demoPlayerName}  
+**Health:** ${demoHealth} / ${demoMaxHealth}
+
+<<if:demoHasPotion is true>>
+<<onclick text="Use Potion">>
+<<var:demoHealth type="number">><<calc>>Math.min(${demoHealth} + 50, ${demoMaxHealth})<</calc>><</var>>
+<<var:demoHasPotion type="boolean">>false<</var>>
+
+*You drink the potion. Health restored!*
+
+<<if:demoHealth at least 100>>
+You're at full health!
+<</if>>
+<</onclick>>
+<</if>>
+
+<<if:demoHasPotion is false>>
+*No potions remaining*
+<</if>>
+
+<<if:demoHealth less than 30>>
+**Warning:** Health critical!
+<</if>>
+
+<<onclick text="Take Damage (-40 HP)">>
+<<var:demoHealth type="number">><<calc>>Math.max(${demoHealth} - 40, 0)<</calc>><</var>>
+<</onclick>>
+
+<<onclick text="Reset">>
+<<var:demoHealth type="number">>75<</var>>
+<<var:demoHasPotion type="boolean">>true<</var>>
+<</onclick>>
+
+---
+
+## Tips
+
+1. **Processing Order:** Variables and substitutions are processed sequentially in document order, so you can set a variable and immediately use it.
+
+2. **Protect Onclick Content:** Variable declarations inside `<<onclick>>` or `<<delayed>>` are NOT processed during initial page load - only when triggered.
+
+3. **Type Conversion:** Always specify `type="number"` for numeric variables to ensure calculations work correctly.
+
+4. **Dynamic Updates:** Use `${varname}` instead of static text when you want values to update dynamically.
+
+5. **Security:** The calculation system is sandboxed and cannot access browser APIs or execute arbitrary code.
+
+---
+
+[[Back to Usage|usage/landing]]  
+[[Try the Interactive Demo|variables/intro]]
+
+---
+
+## Tips
+
+1. **Processing Order:** Variables and substitutions are processed sequentially in document order, so you can set a variable and immediately use it.
+
+2. **Protect Onclick Content:** Variable declarations inside `<<onclick>>` or `<<delayed>>` are NOT processed during initial page load - only when triggered.
+
+3. **Type Conversion:** Always specify `type="number"` for numeric variables to ensure calculations work correctly.
+
+4. **Dynamic Updates:** Use `${varname}` instead of static text when you want values to update dynamically.
+
+5. **Security:** The calculation system is sandboxed and cannot access browser APIs or execute arbitrary code.
+
+---
+
+[[← Back to Usage|usage/landing]]  
+[[Try the Interactive Demo →|variables/intro]]

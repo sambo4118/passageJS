@@ -15,6 +15,19 @@ This page documents all available macros for creating dynamic, interactive passa
 
 ---
 
+## Variables, Calculations & Conditionals
+
+**[[Complete Variable System Documentation|usage/variables]]**
+
+See the dedicated guide for:
+- Variable declaration and types (`<<var:name>>`, `${name}`)
+- Mathematical calculations (`<<calc>>`)
+- Conditional content (`<<if:var comparison value>>`)
+- Dynamic updates in onclick macros
+- Persistence and state management
+
+---
+
 ## Background & Styling
 
 ### `<<bgcolor>>`
@@ -368,5 +381,6 @@ You can nest macros for complex effects:
 
 ---
 
+[[Variables, Calculations & Conditionals|usage/variables]]  
 [[Back to main menu|menu/title-screen]]
 

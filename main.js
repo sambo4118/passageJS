@@ -10,6 +10,8 @@ import {
     parseConditionals,
     parseInlineMarkdown,
     parseBlockMarkdown,
+    protectOnclickContent,
+    restoreOnclickContent,
     activateAnimations
 } from './macros.js';
 
@@ -223,40 +225,6 @@ function protectCodeBlocks(text) {
 function restoreCodeBlocks(text, codeBlocks) {
     let result = text;
     for (const block of codeBlocks) {
-        result = result.replace(block.placeholder, block.content);
-    }
-    return result;
-}
-
-function protectOnclickContent(text) {
-    const protectedBlocks = [];
-    let counter = 0;
-    
-    // Protect onclick macros
-    let result = text;
-    const onclickPattern = /<<onclick\b[^>]*>>([\s\S]*?)<<\/onclick>>/g;
-    result = result.replace(onclickPattern, (match) => {
-        const placeholder = `___ONCLICK_BLOCK_${counter}___`;
-        protectedBlocks.push({ placeholder, content: match });
-        counter++;
-        return placeholder;
-    });
-    
-    // Protect delayed macros
-    const delayedPattern = /<<delayed\b[^>]*>>([\s\S]*?)<<\/delayed>>/g;
-    result = result.replace(delayedPattern, (match) => {
-        const placeholder = `___DELAYED_BLOCK_${counter}___`;
-        protectedBlocks.push({ placeholder, content: match });
-        counter++;
-        return placeholder;
-    });
-    
-    return { text: result, protectedBlocks };
-}
-
-function restoreOnclickContent(text, protectedBlocks) {
-    let result = text;
-    for (const block of protectedBlocks) {
         result = result.replace(block.placeholder, block.content);
     }
     return result;
