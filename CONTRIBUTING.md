@@ -47,7 +47,8 @@ Pull requests welcome for:
 - Use descriptive variable names
 
 ### File Organization
-- `render.js` - Core rendering engine
+- `main.js` - Core rendering engine and game state
+- `macros.js` - Macro parsing and animation logic
 - `index.html` - Entry point and CSS
 - `server.js` - Development server
 - `passages/` - Example content

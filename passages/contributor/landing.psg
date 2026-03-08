@@ -50,7 +50,8 @@ git checkout -b fix/bug-description
 ### File Structure
 
 ```
-render.js           - Main engine (macros, parsing, game state)
+main.js             - Core rendering engine and game state
+macros.js           - Macro parsing and animations
 index.html          - Entry point
 styles.css          - All styling and animations
 server.js           - Development server

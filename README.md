@@ -408,7 +408,8 @@ A hidden door reveals itself!
 2. **Create a ZIP file**
    - Select these files/folders:
      - `index.html`
-     - `render.js`
+     - `main.js`
+     - `macros.js`
      - `passages/` (entire folder)
      - `generate-manifests.js` (optional, for reference)
      - `package.json` (optional, for reference)
