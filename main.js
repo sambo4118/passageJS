@@ -3,6 +3,11 @@ import {
     parseBackgroundColor,
     parseTextColor,
     parseAnimations,
+    parseVariables,
+    parseVariablesAndSubstitutions,
+    substituteVariables,
+    parseCalculations,
+    parseConditionals,
     parseInlineMarkdown,
     parseBlockMarkdown,
     activateAnimations
@@ -10,6 +15,70 @@ import {
 
 // Expose activateAnimations to window for inline onclick handlers
 window.activateAnimations = activateAnimations;
+
+// Function to update all variable displays in the DOM
+window.updateVariableDisplays = function() {
+    const displays = document.querySelectorAll('.var-display');
+    displays.forEach(span => {
+        const varName = span.getAttribute('data-var');
+        if (varName && varName in gameState.variables) {
+            const value = gameState.variables[varName];
+            let displayValue;
+            
+            if (typeof value === 'object') {
+                displayValue = escapeHtml(JSON.stringify(value));
+            } else {
+                displayValue = escapeHtml(String(value));
+            }
+            
+            span.innerHTML = displayValue;
+        }
+    });
+};
+
+// Expose dynamic markup processor for runtime rendering (onclick, delayed, etc.)
+window.renderDynamicContent = async function(elementId, rawMarkup) {
+    const element = document.getElementById(elementId);
+    if (!element) {
+        console.error('Element not found:', elementId);
+        return;
+    }
+    
+    // Ensure marked is loaded
+    if (!window.marked) {
+        const { marked } = await import('https://cdn.jsdelivr.net/npm/marked@11/+esm');
+        window.marked = marked;
+    }
+    
+    // Process the markup exactly like a passage would be processed
+    const context = {
+        state: {
+            onclickRevealCounter: 0,
+            variables: gameState.variables,
+            variableMetadata: gameState.variableMetadata
+        }
+    };
+    
+    const processedMarkup = processPassageMarkup(rawMarkup, context, 0);
+    
+    // Render as markdown exactly like a passage
+    const html = window.marked.parse(processedMarkup);
+    
+    element.innerHTML = html;
+    
+    // Activate any animations in the newly rendered content
+    window.activateAnimations();
+    
+    // Update all variable displays to reflect current values
+    window.updateVariableDisplays();
+    
+    // Highlight any code blocks
+    if (window.hljs) {
+        element.querySelectorAll('pre code').forEach((block) => {
+            window.hljs.highlightElement(block);
+        });
+    }
+};
 
 class SeededRandom {
     constructor(seed) {
@@ -30,7 +99,9 @@ const gameState = {
     rng: new SeededRandom(Date.now()),
     visitedPassages: new Set(),
     currentPassage: null,
-    previousPassage: null
+    previousPassage: null,
+    variables: {},
+    variableMetadata: {}
 };
 
 export function saveGame(slotName = 'autosave') {
@@ -39,6 +110,8 @@ export function saveGame(slotName = 'autosave') {
         previousPassage: gameState.previousPassage,
         visitedPassages: Array.from(gameState.visitedPassages),
         rngSeed: gameState.rng.seed,
+        variables: gameState.variables,
+        variableMetadata: gameState.variableMetadata,
         timestamp: Date.now()
     };
     
@@ -66,6 +139,8 @@ export async function loadGame(slotName = 'autosave') {
         gameState.previousPassage = saveData.previousPassage || null;
         gameState.visitedPassages = new Set(saveData.visitedPassages);
         gameState.rng = new SeededRandom(saveData.rngSeed);
+        gameState.variables = saveData.variables || {};
+        gameState.variableMetadata = saveData.variableMetadata || {};
         
         await renderPassage(saveData.currentPassage);
         
@@ -135,28 +210,53 @@ function protectCodeBlocks(text) {
     const codeBlocks = [];
     let counter = 0;
     
-    let result = text.replace(/(```[\s\S]*?```|~~~[\s\S]*?~~~)/g, (match) => {
+    const protectedText = text.replace(/```[\s\S]*?```|`[^`]+`/g, (match) => {
         const placeholder = `___CODE_BLOCK_${counter}___`;
         codeBlocks.push({ placeholder, content: match });
         counter++;
         return placeholder;
     });
     
-
-    result = result.replace(/(`[^`\n]+?`)/g, (match) => {
-        const placeholder = `___CODE_BLOCK_${counter}___`;
-        codeBlocks.push({ placeholder, content: match });
-        counter++;
-        return placeholder;
-    });
-    
-    return { text: result, codeBlocks };
+    return { text: protectedText, codeBlocks };
 }
-
 
 function restoreCodeBlocks(text, codeBlocks) {
     let result = text;
     for (const block of codeBlocks) {
+        result = result.replace(block.placeholder, block.content);
+    }
+    return result;
+}
+
+function protectOnclickContent(text) {
+    const protectedBlocks = [];
+    let counter = 0;
+    
+    // Protect onclick macros
+    let result = text;
+    const onclickPattern = /<<onclick\b[^>]*>>([\s\S]*?)<<\/onclick>>/g;
+    result = result.replace(onclickPattern, (match) => {
+        const placeholder = `___ONCLICK_BLOCK_${counter}___`;
+        protectedBlocks.push({ placeholder, content: match });
+        counter++;
+        return placeholder;
+    });
+    
+    // Protect delayed macros
+    const delayedPattern = /<<delayed\b[^>]*>>([\s\S]*?)<<\/delayed>>/g;
+    result = result.replace(delayedPattern, (match) => {
+        const placeholder = `___DELAYED_BLOCK_${counter}___`;
+        protectedBlocks.push({ placeholder, content: match });
+        counter++;
+        return placeholder;
+    });
+    
+    return { text: result, protectedBlocks };
+}
+
+function restoreOnclickContent(text, protectedBlocks) {
+    let result = text;
+    for (const block of protectedBlocks) {
         result = result.replace(block.placeholder, block.content);
     }
     return result;
@@ -171,7 +271,11 @@ async function renderPassage(passageName) {
 
         const processedMarkup = processPassageMarkup(parsedText, {
             currentPassageName: canonicalReference,
-            state: { onclickRevealCounter: 0 }
+            state: {
+                onclickRevealCounter: 0,
+                variables: gameState.variables,
+                variableMetadata: gameState.variableMetadata
+            }
         });
         const html = marked.parse(processedMarkup);
 
@@ -211,12 +315,26 @@ function processPassageMarkup(text, context = {}, depth = 0) {
 
     const contextWithState = {
         ...context,
-        state: context.state || { onclickRevealCounter: 0 }
+        state: context.state || {
+            onclickRevealCounter: 0,
+            variables: gameState.variables,
+            variableMetadata: gameState.variableMetadata
+        }
     };
 
     const { text: protectedText, codeBlocks } = protectCodeBlocks(text);
+    
+    // Protect onclick and delayed content before variable processing
+    const { text: textWithProtectedOnclick, protectedBlocks } = protectOnclickContent(protectedText);
 
-    let processedText = parseBackgroundColor(protectedText);
+    let processedText = parseBackgroundColor(textWithProtectedOnclick);
+    processedText = parseVariablesAndSubstitutions(processedText, contextWithState, extractBetweenDelimiter);
+    processedText = parseCalculations(processedText, contextWithState, extractBetweenDelimiter);
+    processedText = parseConditionals(processedText, contextWithState, depth, renderBlockAwareMacroBody);
+    
+    // Restore onclick content before parseAnimations processes it
+    processedText = restoreOnclickContent(processedText, protectedBlocks);
+    
     processedText = parseAnimations(processedText, contextWithState, depth, renderInlineMacroBody, renderBlockAwareMacroBody, extractBetweenDelimiter);
     processedText = parseTextColor(processedText, contextWithState, depth, renderBlockAwareMacroBody, extractBetweenDelimiter);
 

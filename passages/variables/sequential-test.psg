@@ -1,0 +1,23 @@
+# Sequential Variable Test
+
+This tests whether variables are processed in document order.
+
+<<var:a type="number">>25<</var>>
+First value of a: ${a}
+
+<<var:a>>50<</var>>
+Second value of a: ${a}
+
+<<var:name>>Alice<</var>>
+Name: ${name}
+
+<<var:name>>Bob<</var>>
+Name after update: ${name}
+
+---
+
+If this works correctly, you should see:
+- First value of a: 25
+- Second value of a: 50
+- Name: Alice
+- Name after update: Bob

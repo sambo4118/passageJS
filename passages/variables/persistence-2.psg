@@ -1,0 +1,49 @@
+# Testing Persistence (Page 2)
+
+## Did the variables persist?
+
+Let's check the values we set on the previous page:
+
+**Quest:** ${questName}  
+**Progress:** ${questProgress}%  
+**Inventory:** ${inventory}  
+**Clue Found:** ${discoveredClue}
+
+<<if:questProgress is 25>>
+✅ **Success!** Quest progress persisted correctly!
+<</if>>
+
+<<if:discoveredClue is true>>
+✅ **Success!** Boolean value persisted!
+<</if>>
+
+<<if:inventory is "torch, rope, map">>
+✅ **Success!** String value persisted!
+<</if>>
+
+---
+
+## Updating Values Again
+
+Let's continue the quest:
+
+<<var:questProgress type="number">><<calc>>${questProgress} + 25<</calc>><</var>>
+<<var:inventory>>${inventory}, ancient key<</var>>
+
+**New Progress:** ${questProgress}%  
+**Updated Inventory:** ${inventory}
+
+<<if:questProgress at least 50>>
+🎉 You're halfway through the quest!
+<</if>>
+
+---
+
+## Final Test
+
+Go to the next page to see if these updated values persist:
+
+[[Continue to Page 3 →|variables/persistence-3]]
+
+[[← Back to Page 1|variables/persistence-1]]  
+[[← Back to intro|variables/intro]]
