@@ -235,6 +235,16 @@ export function parseVariablesAndSubstitutions(text, context, extractBetweenDeli
     }
     
     let result = text;
+    
+    // Protect calc macro contents from variable substitution wrapping
+    // Extract calc macros and replace with placeholders
+    const calcMacros = [];
+    result = result.replace(/<<calc>>([\s\S]*?)<<\/calc>>/g, (match, content, offset) => {
+        const placeholder = `\x00CALC_PROTECTED_${calcMacros.length}\x00`;
+        calcMacros.push(match);
+        return placeholder;
+    });
+    
     let changed = true;
     
     // Keep processing until no more changes occur
@@ -255,6 +265,11 @@ export function parseVariablesAndSubstitutions(text, context, extractBetweenDeli
             const varName = varMatch[1];
             const attributesStr = varMatch[2];
             let value = varMatch[3].trim();
+            
+            // Restore any protected calc macros in the value
+            value = value.replace(/\x00CALC_PROTECTED_(\d+)\x00/g, (match, index) => {
+                return calcMacros[parseInt(index)] || match;
+            });
             
             // Parse attributes
             const attributes = {};
@@ -345,6 +360,11 @@ export function parseVariablesAndSubstitutions(text, context, extractBetweenDeli
     // Restore any unresolved variable references
     result = result.replace(/\x00VARSUBST:([^>]+)\x00/g, '${$1}');
     
+    // Restore protected calc macros
+    result = result.replace(/\x00CALC_PROTECTED_(\d+)\x00/g, (match, index) => {
+        return calcMacros[parseInt(index)];
+    });
+    
     return result;
 }
 
@@ -402,8 +422,12 @@ export function parseCalculations(text, context, extractBetweenDelimiter) {
             // Safe math expression evaluation
             const calculatedValue = evaluateSafeMathExpression(exprWithVars);
             
+            // Wrap in a span that can be dynamically re-evaluated
+            const encodedExpr = btoa(encodeURIComponent(expression));
+            const replacement = `<span class="calc-display" data-expr="${encodedExpr}">${String(calculatedValue)}</span>`;
+            
             // Replace the macro with the calculated result
-            result = result.replace(macro.fullMatch, String(calculatedValue));
+            result = result.replace(macro.fullMatch, replacement);
         } catch (error) {
             // If evaluation fails, leave it as-is or show error
             console.error('Calculation error:', error, 'Expression:', expression);
@@ -432,8 +456,8 @@ function evaluateSafeMathExpression(expr) {
     // Remove numbers (including decimals and scientific notation)
     testExpr = testExpr.replace(/[0-9.eE+\-]/g, '');
     
-    // Remove operators and parentheses
-    testExpr = testExpr.replace(/[+\-*/%()[\]<>=!&|]/g, '');
+    // Remove operators, parentheses, and commas (for function arguments)
+    testExpr = testExpr.replace(/[+\-*/%()[\]<>=!&|,]/g, '');
     
     // Remove whitespace
     testExpr = testExpr.replace(/\s+/g, '');
@@ -554,12 +578,17 @@ export function parseConditionals(text, context, depth, renderBlockAwareMacroBod
             conditionResult = false;
         }
 
-        // Render content based on condition
-        let replacement = '';
-        if (conditionResult) {
-            const { html: innerHTML, useBlockMarkdown } = renderBlockAwareMacroBody(body, context, depth);
-            replacement = innerHTML;
-        }
+        // Render content based on condition and wrap in a conditional container
+        // that can be dynamically re-evaluated
+        const { html: innerHTML, useBlockMarkdown } = renderBlockAwareMacroBody(body, context, depth);
+        
+        // Encode the condition parts for data attributes
+        const encodedOperator = btoa(conditionExpression);
+        const displayStyle = conditionResult ? '' : 'display: none;';
+        
+        // Use span for inline, div for block content
+        const tagName = useBlockMarkdown ? 'div' : 'span';
+        const replacement = `<${tagName} class="conditional" data-var="${varName}" data-condition="${encodedOperator}" style="${displayStyle}">${innerHTML}</${tagName}>`;
 
         const before = result.slice(0, macro.index);
         const after = result.slice(macro.index + macro.fullMatch.length);
@@ -660,7 +689,7 @@ export function parseAnimations(text, context, depth, renderInlineMacroBody, ren
             // Store raw content base64 encoded
             const encodedContent = btoa(encodeURIComponent(rawContent));
             
-            const html = `<div id="${delayedId}" class="delayed" data-content="${encodedContent}" style="animation-delay: ${time}ms;"></div><script>setTimeout(function() { var elem = document.getElementById('${delayedId}'); var content = decodeURIComponent(atob(elem.getAttribute('data-content'))); window.renderDynamicContent('${delayedId}', content); }, ${time});</script>`;
+            const html = `<span id="${delayedId}" class="delayed" data-content="${encodedContent}" style="animation-delay: ${time}ms;"></span><script>setTimeout(function() { var elem = document.getElementById('${delayedId}'); var content = decodeURIComponent(atob(elem.getAttribute('data-content'))); window.renderDynamicContent('${delayedId}', content); }, ${time});</script>`;
             result = result.replace(macro.fullMatch, html);
         }
     }
@@ -839,7 +868,7 @@ export function parseAnimations(text, context, depth, renderInlineMacroBody, ren
             const triggerStyle = hasTriggerText
                 ? 'cursor: pointer; text-decoration: underline;'
                 : 'display: none;';
-            replacementHTML = `<span id="${currentId}-trigger" class="clickable-text onclick-reveal-trigger" data-auto="${autoReveal}" data-content="${encodedBody}" onclick="${onclickCode}" style="${triggerStyle}">${clickLabel}</span><div id="${currentId}" style="display: none;"></div>`;
+            replacementHTML = `<span id="${currentId}-trigger" class="clickable-text onclick-reveal-trigger" data-auto="${autoReveal}" data-content="${encodedBody}" onclick="${onclickCode}" style="${triggerStyle}">${clickLabel}</span><span id="${currentId}" style="display: none;"></span>`;
         } else {
             const displayText = hasTriggerText ? triggerText : body;
             if (!displayText.trim()) {

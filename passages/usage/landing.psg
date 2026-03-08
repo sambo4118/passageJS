@@ -367,20 +367,6 @@ You can nest macros for complex effects:
 
 <<wave>>Surprise! A wave appears!<</wave>>
 
----
-
-## Tips
-
-1. **Use animations sparingly** - Too many can overwhelm readers
-2. **Choose the right animation** - `<<wiggle>>` for anxiety, `<<hop>>` for playfulness, `<<wave>>` for smooth flow
-3. **Test onclick reveal flows carefully** - Make sure the progression feels natural
-4. **Markdown works everywhere** - All animation macros now support bold, italic, links, etc.
-5. **Both quote styles work** - Use `"..."` or `'...'` in parameters
-6. **Speed parameter tip** - Lower values = faster animations (50ms is fast, 200ms is slow)
-7. **JavaScript safety** - Be careful with onclick/action parameters
-
----
-
 [[Variables, Calculations & Conditionals|usage/variables]]  
 [[Back to main menu|menu/title-screen]]
 

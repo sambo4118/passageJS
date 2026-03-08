@@ -15,10 +15,8 @@ import {
     activateAnimations
 } from './macros.js';
 
-// Expose activateAnimations to window for inline onclick handlers
 window.activateAnimations = activateAnimations;
 
-// Function to update all variable displays in the DOM
 window.updateVariableDisplays = function() {
     const displays = document.querySelectorAll('.var-display');
     displays.forEach(span => {
@@ -35,6 +33,142 @@ window.updateVariableDisplays = function() {
             
             span.innerHTML = displayValue;
         }
+    });
+    
+    window.updateCalculations();
+    
+    window.updateConditionals();
+};
+
+window.updateCalculations = function() {
+    const calcs = document.querySelectorAll('.calc-display');
+    calcs.forEach(span => {
+        const encodedExpr = span.getAttribute('data-expr');
+        if (!encodedExpr) return;
+        
+        try {
+            const expression = decodeURIComponent(atob(encodedExpr));
+            
+            const exprWithVars = expression.replace(/\$\{([a-zA-Z_$][a-zA-Z0-9_$]*)\}/g, (match, varName) => {
+                if (varName in gameState.variables) {
+                    return String(gameState.variables[varName]);
+                }
+                return match;
+            });
+            
+            const calculatedValue = evaluateSafeMathExpression(exprWithVars);
+            span.innerHTML = String(calculatedValue);
+        } catch (error) {
+            console.error('Calc re-evaluation error:', error);
+            span.innerHTML = '[calc error]';
+        }
+    });
+};
+
+function evaluateSafeMathExpression(expr) {
+    const cleaned = expr.replace(/\s+/g, '');
+    const mathFunctionPattern = /Math\.(abs|acos|asin|atan|atan2|ceil|cos|exp|floor|log|max|min|pow|random|round|sin|sqrt|tan|PI|E)/g;
+    const dateFunctionPattern = /Date\.now\(\)/g;
+    
+    let testExpr = expr.replace(mathFunctionPattern, '');
+    testExpr = testExpr.replace(dateFunctionPattern, '');
+    testExpr = testExpr.replace(/[0-9.eE+\-]/g, '');
+    testExpr = testExpr.replace(/[+\-*/%()[\]<>=!&|,]/g, '');
+    testExpr = testExpr.replace(/\s+/g, '');
+    testExpr = testExpr.replace(/Math/g, '');
+    testExpr = testExpr.replace(/Date/g, '');
+    testExpr = testExpr.replace(/now/g, '');
+    testExpr = testExpr.replace(/(abs|acos|asin|atan|atan2|ceil|cos|exp|floor|log|max|min|pow|random|round|sin|sqrt|tan|PI|E)/g, '');
+    
+    if (testExpr.length > 0) {
+        throw new Error('Expression contains disallowed characters or functions');
+    }
+    
+    if (/(\bfunction\b|=>|\beval\b|\bconstructor\b|\bwindow\b|\bdocument\b|\blocalStorage\b|\bimport\b|\brequire\b)/i.test(expr)) {
+        throw new Error('Expression contains disallowed keywords');
+    }
+    
+    const sandboxedFunction = new Function('Math', 'Date', 'return (' + expr + ')');
+    return sandboxedFunction(Math, Date);
+}
+
+window.updateConditionals = function() {
+    const conditionals = document.querySelectorAll('.conditional');
+    conditionals.forEach(elem => {
+        const varName = elem.getAttribute('data-var');
+        const encodedCondition = elem.getAttribute('data-condition');
+        
+        if (!varName || !encodedCondition) return;
+        
+        // Decode the condition expression
+        const conditionExpression = atob(encodedCondition);
+        
+        // Get variable value
+        let varValue = null;
+        if (varName in gameState.variables) {
+            varValue = gameState.variables[varName];
+        }
+        
+        // Evaluate condition
+        let conditionResult = false;
+        try {
+            const comparisonMatch = conditionExpression.match(/^(equals|is|not equals|is not|less than or equal|at most|greater than or equal|at least|less than|greater than)\s+(.+)$/i);
+            
+            if (comparisonMatch) {
+                const operator = comparisonMatch[1].toLowerCase();
+                const compareValueStr = comparisonMatch[2].trim();
+                
+                // Parse the comparison value
+                let compareValue;
+                if (compareValueStr === 'true') {
+                    compareValue = true;
+                } else if (compareValueStr === 'false') {
+                    compareValue = false;
+                } else if (compareValueStr === 'null') {
+                    compareValue = null;
+                } else if (compareValueStr === 'undefined') {
+                    compareValue = undefined;
+                } else if (/^["'].*["']$/.test(compareValueStr)) {
+                    compareValue = compareValueStr.slice(1, -1);
+                } else if (!isNaN(compareValueStr)) {
+                    compareValue = parseFloat(compareValueStr);
+                } else {
+                    compareValue = compareValueStr;
+                }
+                
+                // Perform comparison
+                switch (operator) {
+                    case 'equals':
+                    case 'is':
+                        conditionResult = varValue === compareValue;
+                        break;
+                    case 'not equals':
+                    case 'is not':
+                        conditionResult = varValue !== compareValue;
+                        break;
+                    case 'less than':
+                        conditionResult = varValue < compareValue;
+                        break;
+                    case 'greater than':
+                        conditionResult = varValue > compareValue;
+                        break;
+                    case 'less than or equal':
+                    case 'at most':
+                        conditionResult = varValue <= compareValue;
+                        break;
+                    case 'greater than or equal':
+                    case 'at least':
+                        conditionResult = varValue >= compareValue;
+                        break;
+                }
+            }
+        } catch (error) {
+            console.error('Conditional re-evaluation error:', error);
+            conditionResult = false;
+        }
+        
+        // Update visibility
+        elem.style.display = conditionResult ? '' : 'none';
     });
 };
 
@@ -63,18 +197,13 @@ window.renderDynamicContent = async function(elementId, rawMarkup) {
     
     const processedMarkup = processPassageMarkup(rawMarkup, context, 0);
     
-    // Render as markdown exactly like a passage
     const html = window.marked.parse(processedMarkup);
     
     element.innerHTML = html;
     
-    // Activate any animations in the newly rendered content
     window.activateAnimations();
-    
-    // Update all variable displays to reflect current values
     window.updateVariableDisplays();
     
-    // Highlight any code blocks
     if (window.hljs) {
         element.querySelectorAll('pre code').forEach((block) => {
             window.hljs.highlightElement(block);

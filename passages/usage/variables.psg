@@ -188,11 +188,15 @@ Grade: A
 <</if>>
 
 <<if:testScore at least 80>>
+<<if:testScore less than 90>>
 Grade: B
+<</if>>
 <</if>>
 
 <<if:testScore at least 70>>
+<<if:testScore less than 80>>
 Grade: C
+<</if>>
 <</if>>
 
 <<if:testScore less than 70>>
@@ -342,6 +346,7 @@ You're at full health!
 
 <<onclick text="Take Damage (-40 HP)">>
 <<var:demoHealth type="number">><<calc>>Math.max(${demoHealth} - 40, 0)<</calc>><</var>>
+*Ouch! Health reduced to ${demoHealth}*
 <</onclick>>
 
 <<onclick text="Reset">>
@@ -349,40 +354,4 @@ You're at full health!
 <<var:demoHasPotion type="boolean">>true<</var>>
 <</onclick>>
 
----
-
-## Tips
-
-1. **Processing Order:** Variables and substitutions are processed sequentially in document order, so you can set a variable and immediately use it.
-
-2. **Protect Onclick Content:** Variable declarations inside `<<onclick>>` or `<<delayed>>` are NOT processed during initial page load - only when triggered.
-
-3. **Type Conversion:** Always specify `type="number"` for numeric variables to ensure calculations work correctly.
-
-4. **Dynamic Updates:** Use `${varname}` instead of static text when you want values to update dynamically.
-
-5. **Security:** The calculation system is sandboxed and cannot access browser APIs or execute arbitrary code.
-
----
-
 [[Back to Usage|usage/landing]]  
-[[Try the Interactive Demo|variables/intro]]
-
----
-
-## Tips
-
-1. **Processing Order:** Variables and substitutions are processed sequentially in document order, so you can set a variable and immediately use it.
-
-2. **Protect Onclick Content:** Variable declarations inside `<<onclick>>` or `<<delayed>>` are NOT processed during initial page load - only when triggered.
-
-3. **Type Conversion:** Always specify `type="number"` for numeric variables to ensure calculations work correctly.
-
-4. **Dynamic Updates:** Use `${varname}` instead of static text when you want values to update dynamically.
-
-5. **Security:** The calculation system is sandboxed and cannot access browser APIs or execute arbitrary code.
-
----
-
-[[← Back to Usage|usage/landing]]  
-[[Try the Interactive Demo →|variables/intro]]
