@@ -337,9 +337,39 @@ The system automatically tracks:
 ```bash
 npm start           # Start development server
 npm run manifests   # Generate manifest.json files
+npm run sync:template      # Sync template updates (keeps passages/ untouched)
+npm run sync:template:dry  # Preview template sync changes
 ```
 
 Server runs at: http://localhost:3000
+
+## Syncing Template Updates
+
+If your story repo was created from this template, you can pull engine and structure updates without overwriting your story content in `passages/`.
+
+1. Add this template repo as an upstream remote (one-time setup):
+
+```bash
+git remote add upstream https://github.com/sambo4118/passageJS.git
+```
+
+2. Preview incoming changes:
+
+```bash
+npm run sync:template:dry
+```
+
+3. Apply the sync when you're ready:
+
+```bash
+npm run sync:template
+```
+
+What it does:
+- Syncs all template files except anything under `passages/`
+- Never overwrites your `.psg` files or passage manifests
+- Supports local testing with `node sync-template.js --source ../some-template-clone --dry-run`
+- Optional cleanup mode with `node sync-template.js --prune` to delete non-passage files removed upstream
 
 ## Tips
 
