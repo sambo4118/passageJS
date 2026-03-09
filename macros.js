@@ -496,7 +496,7 @@ export function parseConditionals(text, context, depth, renderBlockAwareMacroBod
             return current.index > rightmost.index ? current : rightmost;
         });
 
-        const partsMatch = macro.content.match(/^([a-zA-Z_$][a-zA-Z0-9_$]*)\s+(.*?)>>([\s\S]*)$/);
+        const partsMatch = macro.content.match(/^\s*([a-zA-Z_$][a-zA-Z0-9_$]*)\s+(.*?)>>([\s\S]*)$/);
         if (!partsMatch) {
             // Invalid syntax, remove the macro
             const before = result.slice(0, macro.index);
