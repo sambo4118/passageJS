@@ -8,6 +8,7 @@ import {
     substituteVariables,
     parseCalculations,
     parseConditionals,
+    parseRandom,
     parseInlineMarkdown,
     parseBlockMarkdown,
     protectOnclickContent,
@@ -428,6 +429,7 @@ function processPassageMarkup(text, context = {}, depth = 0) {
     processedText = parseVariablesAndSubstitutions(processedText, contextWithState, extractBetweenDelimiter);
     processedText = parseCalculations(processedText, contextWithState, extractBetweenDelimiter);
     processedText = parseConditionals(processedText, contextWithState, depth, renderBlockAwareMacroBody);
+    processedText = parseRandom(processedText, { ...contextWithState, rng: gameState.rng }, depth, renderBlockAwareMacroBody);
     
     // Restore onclick content before parseAnimations processes it
     processedText = restoreOnclickContent(processedText, protectedBlocks);

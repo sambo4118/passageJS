@@ -94,6 +94,35 @@ export function extractIfBlockMacros(text) {
     return matches;
 }
 
+export function extractRandomBlockMacros(text) {
+    const tokenPattern = /<<random\b[^>]*>>|<<\/random>>/g;
+    const stack = [];
+    const matches = [];
+    const endToken = '<</random>>';
+
+    for (const token of text.matchAll(tokenPattern)) {
+        const tokenText = token[0];
+        const tokenIndex = token.index;
+
+        if (tokenText.startsWith('<<random')) {
+            stack.push({ index: tokenIndex });
+            continue;
+        }
+
+        if (stack.length === 0) continue;
+
+        const open = stack.pop();
+        const fullMatch = text.slice(open.index, tokenIndex + endToken.length);
+        // content includes the attributes portion and the body
+        matches.push({
+            fullMatch,
+            index: open.index
+        });
+    }
+
+    return matches;
+}
+
 // Helper to determine if content should be rendered as block or inline
 export function parseBlockMarkdown(raw) {
     if (/^\s{0,3}([-*_])(?:\s*\1){2,}\s*$/m.test(raw)) return true;
@@ -589,6 +618,69 @@ export function parseConditionals(text, context, depth, renderBlockAwareMacroBod
         // Use span for inline, div for block content
         const tagName = useBlockMarkdown ? 'div' : 'span';
         const replacement = `<${tagName} class="conditional" data-var="${varName}" data-condition="${encodedOperator}" style="${displayStyle}">${innerHTML}</${tagName}>`;
+
+        const before = result.slice(0, macro.index);
+        const after = result.slice(macro.index + macro.fullMatch.length);
+        result = `${before}${replacement}${after}`;
+    }
+
+    return result;
+}
+
+// Random macro parser
+// Supports: <<random odds="50%">>content<</random>>
+//           <<random odds="3/10">>content<</random>>
+export function parseRandom(text, context, depth, renderBlockAwareMacroBody) {
+    let result = text;
+
+    while (true) {
+        const macros = extractRandomBlockMacros(result);
+        if (macros.length === 0) break;
+
+        const macro = macros.reduce((rightmost, current) => {
+            return current.index > rightmost.index ? current : rightmost;
+        });
+
+        // Parse the opening tag to extract odds attribute
+        const tagMatch = macro.fullMatch.match(/^<<random\s+odds\s*=\s*"([^"]+)"\s*>>/i);
+        if (!tagMatch) {
+            // Invalid syntax, remove the macro
+            const before = result.slice(0, macro.index);
+            const after = result.slice(macro.index + macro.fullMatch.length);
+            result = `${before}${after}`;
+            continue;
+        }
+
+        const oddsStr = tagMatch[1].trim();
+        const body = macro.fullMatch.slice(tagMatch[0].length, macro.fullMatch.length - '<</random>>'.length);
+
+        // Parse odds value into a probability 0-1
+        let probability = 0;
+        const percentMatch = oddsStr.match(/^(\d+(?:\.\d+)?)\s*%$/);
+        const fractionMatch = oddsStr.match(/^(\d+(?:\.\d+)?)\s*\/\s*(\d+(?:\.\d+)?)$/);
+
+        if (percentMatch) {
+            probability = parseFloat(percentMatch[1]) / 100;
+        } else if (fractionMatch) {
+            const denominator = parseFloat(fractionMatch[2]);
+            if (denominator !== 0) {
+                probability = parseFloat(fractionMatch[1]) / denominator;
+            }
+        }
+
+        // Clamp to 0-1
+        probability = Math.max(0, Math.min(1, probability));
+
+        // Use the seeded RNG from context if available, otherwise Math.random
+        const roll = context.rng ? context.rng.next() : Math.random();
+        const show = roll < probability;
+
+        let replacement = '';
+        if (show) {
+            const { html: innerHTML, useBlockMarkdown } = renderBlockAwareMacroBody(body, context, depth);
+            const tagName = useBlockMarkdown ? 'div' : 'span';
+            replacement = `<${tagName} class="random-content">${innerHTML}</${tagName}>`;
+        }
 
         const before = result.slice(0, macro.index);
         const after = result.slice(macro.index + macro.fullMatch.length);
