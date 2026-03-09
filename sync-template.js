@@ -11,6 +11,7 @@ const DEFAULT_BRANCH = 'main';
 function parseArgs(argv) {
   const args = {
     remote: DEFAULT_REMOTE,
+    remoteExplicit: false,
     branch: DEFAULT_BRANCH,
     ref: null,
     source: null,
@@ -39,6 +40,7 @@ function parseArgs(argv) {
 
     if (token === '--remote') {
       args.remote = argv[i + 1];
+      args.remoteExplicit = true;
       i += 1;
       continue;
     }
@@ -79,7 +81,7 @@ Usage:
   node sync-template.js [options]
 
 Options:
-  --remote <name>   Git remote that points to the template repo (default: upstream)
+  --remote <name>   Git remote that points to the template repo (default: upstream, fallback: origin)
   --branch <name>   Branch to sync from when --ref is not used (default: main)
   --ref <git-ref>   Exact git ref to sync from (tag, commit, or branch)
   --source <path>   Sync from a local folder instead of a git remote
@@ -183,6 +185,39 @@ function run(command, options = {}) {
   });
 }
 
+function listGitRemotes(cwd) {
+  const output = run('git remote', { cwd });
+  return output
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter(Boolean);
+}
+
+function resolveRemote(args, cwd) {
+  const remotes = listGitRemotes(cwd);
+
+  if (remotes.includes(args.remote)) {
+    return { remote: args.remote, note: null };
+  }
+
+  if (!args.remoteExplicit && args.remote === DEFAULT_REMOTE && remotes.includes('origin')) {
+    return {
+      remote: 'origin',
+      note: `Remote '${DEFAULT_REMOTE}' not found. Falling back to 'origin'.`
+    };
+  }
+
+  if (remotes.length === 0) {
+    throw new Error('No git remotes found. Add a remote or pass --source <path>.');
+  }
+
+  const available = remotes.join(', ');
+  throw new Error(
+    `Git remote '${args.remote}' was not found. Available remotes: ${available}. ` +
+      'Add the remote first, pass --remote <name>, or use --source <path>.'
+  );
+}
+
 async function materializeSource(args) {
   if (args.source) {
     const absoluteSource = path.resolve(args.source);
@@ -195,25 +230,30 @@ async function materializeSource(args) {
 
   const cwd = process.cwd();
   const ref = args.ref || args.branch;
+  const { remote, note } = resolveRemote(args, cwd);
   const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'passagejs-sync-'));
 
+  if (note) {
+    console.log(`[sync-template] ${note}`);
+  }
+
   try {
-    run(`git fetch --depth=1 ${args.remote} ${ref}`, { cwd });
+    run(`git fetch --depth=1 ${remote} ${ref}`, { cwd });
   } catch (error) {
     const stderr = error && error.stderr ? String(error.stderr).trim() : '';
     throw new Error(
-      `Could not fetch ${args.remote}/${ref}. Add the remote first or pass --source. ${stderr}`.trim()
+      `Could not fetch ${remote}/${ref}. Add the remote first or pass --source. ${stderr}`.trim()
     );
   }
 
   try {
-    run(`git archive --format=tar ${args.remote}/${ref} | tar -xf - -C "${tempDir}"`, { cwd, shell: '/bin/bash' });
+    run(`git archive --format=tar ${remote}/${ref} | tar -xf - -C "${tempDir}"`, { cwd, shell: '/bin/bash' });
   } catch (error) {
     const stderr = error && error.stderr ? String(error.stderr).trim() : '';
-    throw new Error(`Could not export files from ${args.remote}/${ref}. ${stderr}`.trim());
+    throw new Error(`Could not export files from ${remote}/${ref}. ${stderr}`.trim());
   }
 
-  return { sourceDir: tempDir, tempDir, refLabel: `${args.remote}/${ref}` };
+  return { sourceDir: tempDir, tempDir, refLabel: `${remote}/${ref}` };
 }
 
 async function main() {

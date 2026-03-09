@@ -717,13 +717,26 @@ document.addEventListener('click', (click) => {
 });
 
 
-window.addEventListener('DOMContentLoaded', () => {
+const DEFAULT_PASSAGE = 'menu/title-screen';
 
-    const hash = window.location.hash.slice(1); 
-    if (hash) {
-        renderPassage(hash);
-    } else {
-        renderPassage('menu/title-screen');
+const DEFAULT_TITLE_SCREEN = `<<bgcolor color='#1f1f1f'>>
+# Welcome to PassageJS
+
+**Your story starts here.**
+
+Edit \`passages/menu/title-screen.psg\` to customise this screen, or create new passages and link to them.
+
+[[Check out the quick start guide|quickstart/landing]]
+`;
+
+window.addEventListener('DOMContentLoaded', async () => {
+
+    const hash = window.location.hash.slice(1);
+    const target = hash || DEFAULT_PASSAGE;
+
+    const success = await renderPassage(target);
+    if (!success && target === DEFAULT_PASSAGE) {
+        renderDefaultTitleScreen();
     }
 
     // Check for engine updates (only in built/release mode)
@@ -731,6 +744,24 @@ window.addEventListener('DOMContentLoaded', () => {
         checkForUpdates();
     }
 });
+
+async function renderDefaultTitleScreen() {
+    const { marked } = await import('https://cdn.jsdelivr.net/npm/marked@11/+esm');
+    window.marked = marked;
+
+    const processedMarkup = processPassageMarkup(DEFAULT_TITLE_SCREEN, {
+        currentPassageName: DEFAULT_PASSAGE,
+        state: {
+            onclickRevealCounter: 0,
+            variables: gameState.variables,
+            variableMetadata: gameState.variableMetadata
+        }
+    });
+    const html = marked.parse(processedMarkup);
+    displayMainHTML(html);
+    window.activateAnimations();
+    gameState.currentPassage = DEFAULT_PASSAGE;
+}
 
 function checkForUpdates() {
     const currentVersion = __PASSAGEJS_VERSION__;
