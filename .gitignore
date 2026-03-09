@@ -3,6 +3,10 @@ node_modules/
 package-lock.json
 yarn.lock
 
+# Build output
+dist/
+passagejs-release.zip
+
 # OS files
 .DS_Store
 Thumbs.db

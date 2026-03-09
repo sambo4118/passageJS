@@ -7,6 +7,8 @@
     "start": "node server.js",
     "dev": "node server.js",
     "manifests": "node generate-manifests.js",
+    "build": "node build.js",
+    "release": "node build.js && cd dist && zip -r ../passagejs-release.zip . && echo '\n✓ passagejs-release.zip ready'",
     "update": "node sync-template.js",
     "update:dry": "node sync-template.js --dry-run"
   },
@@ -32,5 +34,8 @@
   "homepage": "https://github.com/YOUR_USERNAME/passagejs#readme",
   "engines": {
     "node": ">=18"
+  },
+  "devDependencies": {
+    "esbuild": "^0.27.3"
   }
 }

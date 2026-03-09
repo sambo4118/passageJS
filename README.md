@@ -337,6 +337,7 @@ The system automatically tracks:
 ```bash
 npm start           # Start development server
 npm run manifests   # Generate manifest.json files
+npm run build       # Bundle engine into dist/ for deployment
 npm run update      # Pull template updates (keeps passages/ untouched)
 npm run update:dry  # Preview what would change before updating
 ```
@@ -430,20 +431,17 @@ A hidden door reveals itself!
 
 **Steps to publish:**
 
-1. **Prepare your project**
-   - Remove `node_modules/` and `server.js` (not needed for itch)
-   - Test locally with `npm start` to ensure everything works
-   - Run `npm run manifests` to update manifest files
+1. **Build your project**
+   - Run `npm run build` to bundle everything into `dist/`
+   - The build packs all engine JS into a single `engine.min.js`
+   - Your passages are copied as-is
 
 2. **Create a ZIP file**
-   - Select these files/folders:
+   - ZIP the entire `dist/` folder contents:
      - `index.html`
-     - `main.js`
-     - `macros.js`
+     - `engine.min.js`
+     - `styles.css`
      - `passages/` (entire folder)
-     - `generate-manifests.js` (optional, for reference)
-     - `package.json` (optional, for reference)
-   - Right-click → "Compress to ZIP" or use compression tool
    - Name it something like `my-story.zip`
 
 3. **Upload to itch.io**
