@@ -725,7 +725,43 @@ window.addEventListener('DOMContentLoaded', () => {
     } else {
         renderPassage('menu/title-screen');
     }
+
+    // Check for engine updates (only in built/release mode)
+    if (typeof __PASSAGEJS_VERSION__ !== 'undefined') {
+        checkForUpdates();
+    }
 });
+
+function checkForUpdates() {
+    const currentVersion = __PASSAGEJS_VERSION__;
+    const repo = __PASSAGEJS_REPO__;
+    const apiUrl = `https://api.github.com/repos/${repo}/releases/latest`;
+
+    fetch(apiUrl)
+        .then(res => {
+            if (!res.ok) return null;
+            return res.json();
+        })
+        .then(data => {
+            if (!data || !data.tag_name) return;
+            const latest = data.tag_name.replace(/^v/i, '');
+            if (latest === currentVersion) return;
+            showUpdateBanner(latest, data.html_url);
+        })
+        .catch(() => {
+            // Silently ignore — user may be offline or rate-limited
+        });
+}
+
+function showUpdateBanner(latestVersion, releaseUrl) {
+    const banner = document.createElement('div');
+    banner.id = 'update-banner';
+    banner.innerHTML =
+        `PassageJS <strong>v${latestVersion}</strong> is available. ` +
+        `<a href="${releaseUrl}" target="_blank" rel="noopener">View release</a>` +
+        `<button onclick="this.parentElement.remove()" aria-label="Dismiss">&times;</button>`;
+    document.body.prepend(banner);
+}
 
 
 window.changeBgColor = (color) => {

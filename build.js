@@ -58,6 +58,11 @@ async function build() {
   await fs.rm(DIST, { recursive: true, force: true });
   await fs.mkdir(DIST, { recursive: true });
 
+  // Read version and repo info from package.json
+  const pkg = JSON.parse(await fs.readFile(path.join(SRC, 'package.json'), 'utf8'));
+  const version = pkg.version;
+  const repo = 'sambo4118/passageJS';
+
   // Bundle main.js + macros.js → engine.min.js
   await esbuild.build({
     entryPoints: [path.join(SRC, 'main.js')],
@@ -66,6 +71,10 @@ async function build() {
     format: 'iife',
     globalName: '__passageJS',
     outfile: path.join(DIST, 'engine.min.js'),
+    define: {
+      '__PASSAGEJS_VERSION__': JSON.stringify(version),
+      '__PASSAGEJS_REPO__': JSON.stringify(repo)
+    },
     footer: {
       // Expose exports on window so inline scripts can access them
       js: 'window.__passageJS = __passageJS;'
