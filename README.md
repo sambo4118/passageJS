@@ -337,8 +337,8 @@ The system automatically tracks:
 ```bash
 npm start           # Start development server
 npm run manifests   # Generate manifest.json files
-npm run sync:template      # Sync template updates (keeps passages/ untouched)
-npm run sync:template:dry  # Preview template sync changes
+npm run update      # Pull template updates (keeps passages/ untouched)
+npm run update:dry  # Preview what would change before updating
 ```
 
 Server runs at: http://localhost:3000
@@ -356,13 +356,13 @@ git remote add upstream https://github.com/sambo4118/passageJS.git
 2. Preview incoming changes:
 
 ```bash
-npm run sync:template:dry
+npm run update:dry
 ```
 
-3. Apply the sync when you're ready:
+3. Apply the update when you're ready:
 
 ```bash
-npm run sync:template
+npm run update
 ```
 
 What it does:

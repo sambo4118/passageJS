@@ -7,8 +7,8 @@
     "start": "node server.js",
     "dev": "node server.js",
     "manifests": "node generate-manifests.js",
-    "sync:template": "node sync-template.js",
-    "sync:template:dry": "node sync-template.js --dry-run"
+    "update": "node sync-template.js",
+    "update:dry": "node sync-template.js --dry-run"
   },
   "keywords": [
     "narrative",
