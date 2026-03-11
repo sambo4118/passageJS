@@ -810,15 +810,17 @@ export function parseAnimations(text, context, depth, renderInlineMacroBody, ren
         result = result.replace(macro.fullMatch, html);
     }
     
-    // Parse <<typewriter speed="50">>text<</typewriter>>
+    // Parse <<typewriter speed="50" skipable>>text<</typewriter>>
     const typewriters = extractBetweenDelimiter(result, '<<typewriter', '<</typewriter>>');
     for (const macro of typewriters) {
-        const speedMatch = macro.content.match(/speed="(\d+)">>(.*)/s);
+        const speedMatch = macro.content.match(/speed="(\d+)"(.*?)>>(.*)/s);
         if (speedMatch) {
             const speed = speedMatch[1];
-            const content = speedMatch[2];
+            const attrs = speedMatch[2];
+            const skipable = /\bskipable\b/.test(attrs);
+            const content = speedMatch[3];
             const processedContent = renderInlineMacroBody(content, context, depth);
-            const html = `<span class="typewriter" data-speed="${speed}" data-html="${processedContent.replace(/"/g, '&quot;')}"></span>`;
+            const html = `<span class="typewriter" data-speed="${speed}"${skipable ? ' data-skipable="true"' : ''} data-html="${processedContent.replace(/"/g, '&quot;')}"></span>`;
             result = result.replace(macro.fullMatch, html);
         }
     }
@@ -1033,10 +1035,34 @@ export function activateAnimations() {
             }
             
             let currentNodeIndex = 0;
+            let skipped = false;
+            let onClick = null;
             
+            const skipAnimation = () => {
+                if (skipped) return;
+                skipped = true;
+                clearInterval(interval);
+                for (const tn of textNodes) {
+                    tn.node.textContent = tn.fullText;
+                }
+                if (onClick) {
+                    document.removeEventListener('click', onClick);
+                }
+            };
+
+            if (elem.dataset.skipable === 'true') {
+                onClick = () => {
+                    skipAnimation();
+                };
+                document.addEventListener('click', onClick);
+            }
+
             const interval = setInterval(() => {
                 if (currentNodeIndex >= textNodes.length) {
                     clearInterval(interval);
+                    if (onClick) {
+                        document.removeEventListener('click', onClick);
+                    }
                     return;
                 }
                 
