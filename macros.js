@@ -64,10 +64,10 @@ export function extractOnclickMacros(text) {
 }
 
 export function extractIfBlockMacros(text) {
-    const tokenPattern = /<<if:[^>]*>>|<<\/if>>/g;
+    const tokenPattern = /<<if [^>]*>>|<<\/if>>/g;
     const stack = [];
     const matches = [];
-    const startToken = '<<if:';
+    const startToken = '<<if ';
     const endToken = '<</if>>';
 
     for (const token of text.matchAll(tokenPattern)) {
@@ -178,8 +178,8 @@ export function restoreOnclickContent(text, protectedBlocks) {
 export function parseVariables(text, context, extractBetweenDelimiter) {
     let result = text;
     
-    // Parse <<var:varname attribute="value">>content<</var>>
-    const varMacros = extractBetweenDelimiter(result, '<<var:', '<</var>>');
+    // Parse <<var varname attribute="value">>content<</var>>
+    const varMacros = extractBetweenDelimiter(result, '<<var ', '<</var>>');
     
     for (const macro of varMacros) {
         // Extract variable name and attributes from content before >>
@@ -281,7 +281,7 @@ export function parseVariablesAndSubstitutions(text, context, extractBetweenDeli
         changed = false;
         
         // Find the first variable declaration
-        const varMatch = result.match(/<<var:([a-zA-Z_$][a-zA-Z0-9_$]*)((?:\s+[a-zA-Z_-]+="[^"]*")*)\s*>>([\s\S]*?)<<\/var>>/);
+        const varMatch = result.match(/<<var ([a-zA-Z_$][a-zA-Z0-9_$]*)((?:\s+[a-zA-Z_-]+="[^"]*")*)\s*>>([\s\S]*?)<<\/var>>/);
         // Find the first variable substitution
         const subMatch = result.match(/\$\{([a-zA-Z_$][a-zA-Z0-9_$]*)\}/);
         
@@ -512,7 +512,7 @@ function evaluateSafeMathExpression(expr) {
     return sandboxedFunction(Math, Date);
 }
 
-// Conditional macro parser - <<if:varname comparison value>>content<</if>>
+// Conditional macro parser - <<if varname comparison value>>content<</if>>
 export function parseConditionals(text, context, depth, renderBlockAwareMacroBody) {
     let result = text;
 

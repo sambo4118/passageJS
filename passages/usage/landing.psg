@@ -20,9 +20,9 @@ This page documents all available macros for creating dynamic, interactive passa
 **[[Complete Variable System Documentation|usage/variables]]**
 
 See the dedicated guide for:
-- Variable declaration and types (`<<var:name>>`, `${name}`)
+- Variable declaration and types (`<<var name>>`, `${name}`)
 - Mathematical calculations (`<<calc>>`)
-- Conditional content (`<<if:var comparison value>>`)
+- Conditional content (`<<if var comparison value>>`)
 - Dynamic updates in onclick macros
 - Persistence and state management
 
