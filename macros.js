@@ -516,6 +516,7 @@ function evaluateSafeMathExpression(expr) {
 export function parseConditionals(text, context, depth, renderBlockAwareMacroBody) {
     let result = text;
     const truthyConditionToken = '__truthy__';
+    const negationTokenPrefix = '__negate__:';
 
     while (true) {
         const ifMacros = extractIfBlockMacros(result);
@@ -526,7 +527,7 @@ export function parseConditionals(text, context, depth, renderBlockAwareMacroBod
             return current.index > rightmost.index ? current : rightmost;
         });
 
-        const partsMatch = macro.content.match(/^\s*([a-zA-Z_$][a-zA-Z0-9_$]*)(?:\s+(.*?))?>>([\s\S]*)$/);
+        const partsMatch = macro.content.match(/^\s*(not\s+)?([a-zA-Z_$][a-zA-Z0-9_$]*)(?:\s+(.*?))?>>([\s\S]*)$/i);
         if (!partsMatch) {
             // Invalid syntax, remove the macro
             const before = result.slice(0, macro.index);
@@ -535,9 +536,10 @@ export function parseConditionals(text, context, depth, renderBlockAwareMacroBod
             continue;
         }
 
-        const varName = partsMatch[1];
-        const conditionExpression = (partsMatch[2] || '').trim();
-        const body = partsMatch[3];
+        const negateResult = Boolean(partsMatch[1]);
+        const varName = partsMatch[2];
+        const conditionExpression = (partsMatch[3] || '').trim();
+        const body = partsMatch[4];
 
         // Get variable value
         let varValue = null;
@@ -629,6 +631,10 @@ export function parseConditionals(text, context, depth, renderBlockAwareMacroBod
                     conditionResult = runningResult;
                 }
             }
+
+            if (negateResult) {
+                conditionResult = !conditionResult;
+            }
         } catch (error) {
             console.error('Conditional evaluation error:', error);
             conditionResult = false;
@@ -639,7 +645,8 @@ export function parseConditionals(text, context, depth, renderBlockAwareMacroBod
         const { html: innerHTML, useBlockMarkdown } = renderBlockAwareMacroBody(body, context, depth);
         
         // Encode the condition parts for data attributes
-        const encodedOperator = btoa(conditionExpression || truthyConditionToken);
+        const conditionPayload = `${negateResult ? negationTokenPrefix : ''}${conditionExpression || truthyConditionToken}`;
+        const encodedOperator = btoa(conditionPayload);
         const displayStyle = conditionResult ? '' : 'display: none;';
         
         // Use span for inline, div for block content

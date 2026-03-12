@@ -141,6 +141,10 @@ Shorthand truthy form:
 <<if variableName comparison value and comparison value>>
   content to show if all conditions are true
 <</if>>
+
+<<if not variableName>>
+  content to show when variable is falsy
+<</if>>
 ```
 
 **Comparison Operators:**
@@ -173,6 +177,10 @@ Shorthand truthy form:
 
 <<if score at least 70 and less than 90>>
   Mid band score.
+<</if>>
+
+<<if not hasKey>>
+  The door stays locked.
 <</if>>
 ```
 

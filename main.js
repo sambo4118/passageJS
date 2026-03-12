@@ -165,6 +165,7 @@ function evaluateSafeMathExpression(expr) {
 window.updateConditionals = function() {
     const conditionals = document.querySelectorAll('.conditional');
     const truthyConditionToken = '__truthy__';
+    const negationTokenPrefix = '__negate__:';
     conditionals.forEach(elem => {
         const varName = elem.getAttribute('data-var');
         const encodedCondition = elem.getAttribute('data-condition');
@@ -172,7 +173,11 @@ window.updateConditionals = function() {
         if (!varName || !encodedCondition) return;
         
         // Decode the condition expression
-        const conditionExpression = atob(encodedCondition);
+        const rawConditionExpression = atob(encodedCondition);
+        const negateResult = rawConditionExpression.startsWith(negationTokenPrefix);
+        const conditionExpression = negateResult
+            ? rawConditionExpression.slice(negationTokenPrefix.length)
+            : rawConditionExpression;
         
         // Get variable value
         let varValue = null;
@@ -263,6 +268,10 @@ window.updateConditionals = function() {
                     }
                     conditionResult = runningResult;
                 }
+            }
+
+            if (negateResult) {
+                conditionResult = !conditionResult;
             }
         } catch (error) {
             console.error('Conditional re-evaluation error:', error);
