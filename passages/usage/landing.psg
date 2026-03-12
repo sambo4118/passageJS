@@ -28,6 +28,26 @@ See the dedicated guide for:
 
 ---
 
+## Header Passage
+
+The header passage is an **optional** file at `passages/menu/header.psg` that is automatically loaded and rendered before every passage. Use it to apply global styling or display persistent content.
+
+**How it works:**
+- Create `passages/menu/header.psg`
+- Put any macros or content in it (e.g. `<<bgcolor>>`, `<<textcolor>>`, variables)
+- It renders above every passage automatically
+- If the file doesn't exist, nothing happens
+
+**Example `passages/menu/header.psg`:**
+```
+<<bgcolor color='#1f1f1f'>>
+<<textcolor color='#e8e8e8'>>
+```
+
+This sets a consistent background and text color across all passages without repeating macros.
+
+---
+
 ## Background & Styling
 
 ### `<<bgcolor>>`

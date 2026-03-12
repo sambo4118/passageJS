@@ -446,6 +446,45 @@ function displayMainHTML(html) {
     displayElement.innerHTML = html;
 }
 
+function displayHeaderHTML(html) {
+    const headerElement = document.getElementById("header-display");
+    if (!headerElement) return;
+    if (html) {
+        headerElement.innerHTML = html;
+        headerElement.style.display = '';
+    } else {
+        headerElement.innerHTML = '';
+        headerElement.style.display = 'none';
+    }
+}
+
+const HEADER_PASSAGE = 'menu/header';
+
+async function renderHeader() {
+    try {
+        const { canonicalReference, parsedText } = await loadPassage(HEADER_PASSAGE);
+
+        if (!window.marked) {
+            const { marked } = await import('https://cdn.jsdelivr.net/npm/marked@11/+esm');
+            window.marked = marked;
+        }
+
+        const processedMarkup = processPassageMarkup(parsedText, {
+            currentPassageName: canonicalReference,
+            state: {
+                onclickRevealCounter: 0,
+                variables: gameState.variables,
+                variableMetadata: gameState.variableMetadata
+            }
+        });
+        const html = window.marked.parse(processedMarkup);
+        displayHeaderHTML(html);
+    } catch (_error) {
+        // Header passage doesn't exist or failed to load — hide the header
+        displayHeaderHTML(null);
+    }
+}
+
 function extractBetweenDelimiter(text, startDelimiter, endDelimiter) {
     const escapeRegex = (str) => str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
     const pattern = new RegExp(`${escapeRegex(startDelimiter)}(.*?)${escapeRegex(endDelimiter)}`, 'gs');
@@ -489,6 +528,9 @@ async function renderPassage(passageName) {
 
         const { marked } = await import('https://cdn.jsdelivr.net/npm/marked@11/+esm');
         window.marked = marked;
+
+        // Render the global header passage first (applies bgcolor, scripts, etc.)
+        await renderHeader();
 
         const processedMarkup = processPassageMarkup(parsedText, {
             currentPassageName: canonicalReference,
@@ -878,6 +920,8 @@ window.addEventListener('DOMContentLoaded', async () => {
 async function renderDefaultTitleScreen() {
     const { marked } = await import('https://cdn.jsdelivr.net/npm/marked@11/+esm');
     window.marked = marked;
+
+    await renderHeader();
 
     const processedMarkup = processPassageMarkup(DEFAULT_TITLE_SCREEN, {
         currentPassageName: DEFAULT_PASSAGE,

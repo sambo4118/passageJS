@@ -83,6 +83,8 @@ Unlike Twine, PassageJS has full spell checking support via VS Code!
 
 ```
 passages/
+  menu/
+    header.psg            - Optional global header (rendered on every passage)
   groupName/
     passageID.psg         - Main passage files (markdown)
     manifest.json         - List of passage IDs for random selection
@@ -312,6 +314,24 @@ You can nest macros and markdown for complex effects:
 ```
 
 **For a complete interactive macro reference,** run `npm start` and navigate to the usage guide in the interactive readme!
+
+## Header Passage
+
+The header passage is an optional file at `passages/menu/header.psg` that is automatically loaded and rendered **before every passage**. Use it to set a consistent background color, display a persistent navigation bar, or run macros that should apply globally.
+
+**How it works:**
+- On every passage navigation, the engine renders `menu/header` first
+- All macros work inside the header (`<<bgcolor>>`, `<<textcolor>>`, variables, etc.)
+- The header HTML appears above the main passage content
+- If the file doesn't exist, nothing happens — it's completely optional
+
+**Example `passages/menu/header.psg`:**
+```markdown
+<<bgcolor color='#1f1f1f'>>
+<<textcolor color='#e8e8e8'>>
+```
+
+This sets a consistent background and text color on every passage without needing to repeat the macros in each `.psg` file.
 
 ## Transitions
 
