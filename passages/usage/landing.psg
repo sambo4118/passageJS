@@ -57,6 +57,7 @@ Changes the page background color, and can optionally set a background image.
 ```
 <<background color="color-value">>
 <<background color="color-value" img="imgpath">>
+<<background color="color-value" script="scripts/texture.js">>
 ```
 
 **Examples:**
@@ -65,9 +66,53 @@ Changes the page background color, and can optionally set a background image.
 <<background color='darkblue'>>
 <<background color="rgb(30, 30, 30)">>
 <<background color="#101114" img="assets/bg/forest.jpg">>
+<<background color="#101114" script="scripts/grain-texture.js">>
 ```
 
 **Note:** Accepts both single and double quotes. If multiple `<<background>>` macros appear, the last one on the page wins.
+
+**Script return values:**
+- String path/url/gradient (`"assets/bg/noise.png"`, `"url(data:image/png;base64,...)"`, `"linear-gradient(...)"`)
+- Canvas element (`return canvas`)
+- Object (`{ image, size, position, repeat }`)
+
+**Script API input:**
+- `width` and `height` (current viewport size)
+- `dpr` (device pixel ratio)
+- `viewport` (`{ width, height, dpr }`)
+- `attributes` (attributes from `<<background ...>>`)
+- `createCanvas(width, height)` helper
+
+**Example script call and file:**
+```
+<<background color="#0b0f12" script="scripts/grain-texture.js">>
+```
+
+Create `scripts/grain-texture.js`:
+```javascript
+export default function generateBackground(api) {
+  const size = Math.max(192, Math.floor(Math.min(api.width, api.height) / 3));
+  const canvas = api.createCanvas(size, size);
+  const ctx = canvas.getContext('2d');
+  const image = ctx.createImageData(size, size);
+
+  for (let i = 0; i < image.data.length; i += 4) {
+    const n = Math.floor(Math.random() * 30);
+    image.data[i] = 16 + n;
+    image.data[i + 1] = 20 + n;
+    image.data[i + 2] = 26 + n;
+    image.data[i + 3] = 36;
+  }
+
+  ctx.putImageData(image, 0, 0);
+  return {
+    image: `url(${canvas.toDataURL('image/png')})`,
+    repeat: 'repeat',
+    size: `${size}px ${size}px`,
+    position: 'top left'
+  };
+}
+```
 
 ### `<<textcolor>>`
 Changes text color globally or for a specific block.

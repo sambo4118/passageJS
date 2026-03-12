@@ -176,7 +176,15 @@ Changes the background color of the entire page:
 <<background color="#1f1f1f">>
 <<background color='darkblue'>>
 <<background color="#101114" img="assets/bg/forest.jpg">>
+<<background color="#101114" script="scripts/grain-texture.js">>
 ```
+
+`script` loads a JavaScript module and calls its exported generator function with viewport info.
+
+Script module API:
+- Export `default` (or named `generateBackground`) as a function.
+- Input includes `width`, `height`, `dpr`, `viewport`, `attributes`, and `createCanvas(width, height)`.
+- Return a string image value, a canvas, or `{ image, size, position, repeat }`.
 
 ### Text Color
 

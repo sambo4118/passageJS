@@ -752,6 +752,112 @@ export function parseRandom(text, context, depth, renderBlockAwareMacroBody) {
 
 // Background color macro parser
 export function parseBackgroundColor(text) {
+    const applyBackgroundImageValue = (value) => {
+        if (value instanceof HTMLCanvasElement) {
+            document.body.style.backgroundImage = `url("${value.toDataURL('image/png')}")`;
+            return true;
+        }
+
+        if (typeof value === 'string') {
+            const trimmed = value.trim();
+            if (!trimmed) return false;
+
+            if (/^url\(/i.test(trimmed) || /^linear-gradient\(/i.test(trimmed) || /^radial-gradient\(/i.test(trimmed)) {
+                document.body.style.backgroundImage = trimmed;
+            } else {
+                const safeImagePath = trimmed.replace(/"/g, '\\"');
+                document.body.style.backgroundImage = `url("${safeImagePath}")`;
+            }
+
+            return true;
+        }
+
+        if (value && typeof value === 'object') {
+            const imageValue = typeof value.image === 'string' ? value.image.trim() : '';
+            if (!imageValue) return false;
+
+            if (/^url\(/i.test(imageValue) || /^linear-gradient\(/i.test(imageValue) || /^radial-gradient\(/i.test(imageValue)) {
+                document.body.style.backgroundImage = imageValue;
+            } else {
+                const safeImagePath = imageValue.replace(/"/g, '\\"');
+                document.body.style.backgroundImage = `url("${safeImagePath}")`;
+            }
+
+            if (typeof value.size === 'string') document.body.style.backgroundSize = value.size;
+            if (typeof value.position === 'string') document.body.style.backgroundPosition = value.position;
+            if (typeof value.repeat === 'string') document.body.style.backgroundRepeat = value.repeat;
+
+            return true;
+        }
+
+        return false;
+    };
+
+    const loadScriptGenerator = async (scriptPath) => {
+        if (!scriptPath) return null;
+
+        if (!window.passageBackgroundScriptCache) {
+            window.passageBackgroundScriptCache = {};
+        }
+
+        if (window.passageBackgroundScriptCache[scriptPath]) {
+            return window.passageBackgroundScriptCache[scriptPath];
+        }
+
+        try {
+            const resolvedUrl = new URL(scriptPath, window.location.href).href;
+            const moduleExports = await import(resolvedUrl);
+            const generator = moduleExports.default || moduleExports.generateBackground;
+
+            if (typeof generator !== 'function') {
+                console.warn(`Background script '${scriptPath}' must export a default function or 'generateBackground'.`);
+                return null;
+            }
+
+            window.passageBackgroundScriptCache[scriptPath] = generator;
+            return generator;
+        } catch (error) {
+            console.error(`Failed to load background script '${scriptPath}':`, error);
+            return null;
+        }
+    };
+
+    const runScriptBackground = (scriptPath, attributes, requestId) => {
+        if (!scriptPath) return;
+
+        void loadScriptGenerator(scriptPath).then((generator) => {
+            if (typeof generator !== 'function') return;
+            if (window.passageBackgroundRequestId !== requestId) return;
+
+            const api = {
+                width: window.innerWidth,
+                height: window.innerHeight,
+                dpr: window.devicePixelRatio || 1,
+                viewport: {
+                    width: window.innerWidth,
+                    height: window.innerHeight,
+                    dpr: window.devicePixelRatio || 1
+                },
+                attributes,
+                createCanvas(width = window.innerWidth, height = window.innerHeight) {
+                    const canvas = document.createElement('canvas');
+                    canvas.width = width;
+                    canvas.height = height;
+                    return canvas;
+                }
+            };
+
+            try {
+                const result = generator(api);
+                if (result == null) return;
+                if (window.passageBackgroundRequestId !== requestId) return;
+                applyBackgroundImageValue(result);
+            } catch (error) {
+                console.error(`Background script failed '${scriptPath}':`, error);
+            }
+        });
+    };
+
     const backgroundPattern = /<<background\b([^>]*)>>/g;
     let foundBackground = false;
 
@@ -768,17 +874,36 @@ export function parseBackgroundColor(text) {
             document.body.style.backgroundColor = attributes.color;
         }
 
+        if (typeof window.passageBackgroundRequestId !== 'number') {
+            window.passageBackgroundRequestId = 0;
+        }
+
+        const currentRequestId = ++window.passageBackgroundRequestId;
+
         if (attributes.img) {
             const safeImagePath = attributes.img.replace(/"/g, '\\"');
             document.body.style.backgroundImage = `url("${safeImagePath}")`;
             document.body.style.backgroundSize = 'cover';
             document.body.style.backgroundPosition = 'center center';
             document.body.style.backgroundRepeat = 'no-repeat';
-        } else {
+        }
+
+        if (attributes.script) {
+            runScriptBackground(attributes.script, attributes, currentRequestId);
+        }
+
+        if (!attributes.img && !attributes.script) {
             document.body.style.backgroundImage = 'none';
             document.body.style.backgroundSize = '';
             document.body.style.backgroundPosition = '';
             document.body.style.backgroundRepeat = '';
+        }
+
+        if (!attributes.img && attributes.script) {
+            // Keep script-driven textures stable if only color/script are provided.
+            if (!document.body.style.backgroundSize) document.body.style.backgroundSize = 'cover';
+            if (!document.body.style.backgroundPosition) document.body.style.backgroundPosition = 'center center';
+            if (!document.body.style.backgroundRepeat) document.body.style.backgroundRepeat = 'no-repeat';
         }
 
         foundBackground = true;
@@ -786,6 +911,10 @@ export function parseBackgroundColor(text) {
     });
 
     if (!foundBackground) {
+        if (typeof window.passageBackgroundRequestId !== 'number') {
+            window.passageBackgroundRequestId = 0;
+        }
+        window.passageBackgroundRequestId += 1;
         document.body.style.backgroundColor = '#101114';
         document.body.style.backgroundImage = 'none';
         document.body.style.backgroundSize = '';
