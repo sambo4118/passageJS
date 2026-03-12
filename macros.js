@@ -820,7 +820,8 @@ export function parseAnimations(text, context, depth, renderInlineMacroBody, ren
             const skipable = /\bskipable\b/.test(attrs);
             const content = speedMatch[3];
             const processedContent = renderInlineMacroBody(content, context, depth);
-            const html = `<span class="typewriter" data-speed="${speed}"${skipable ? ' data-skipable="true"' : ''} data-html="${processedContent.replace(/"/g, '&quot;')}"></span>`;
+            const encodedContent = btoa(encodeURIComponent(processedContent));
+            const html = `<span class="typewriter" data-speed="${speed}"${skipable ? ' data-skipable="true"' : ''} data-content="${encodedContent}"></span>`;
             result = result.replace(macro.fullMatch, html);
         }
     }
@@ -1003,7 +1004,8 @@ export function activateAnimations() {
         if (elem.dataset.animated) return; 
         elem.dataset.animated = 'true';
         
-        const htmlContent = elem.dataset.html;
+        const encodedContent = elem.dataset.content || '';
+        const htmlContent = encodedContent ? decodeURIComponent(atob(encodedContent)) : '';
         const speed = parseInt(elem.dataset.speed) || 50;
         const startDelay = getInheritedAnimationDelay(elem);
         
