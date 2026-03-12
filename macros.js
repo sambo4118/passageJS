@@ -515,6 +515,7 @@ function evaluateSafeMathExpression(expr) {
 // Conditional macro parser - <<if varname comparison value>>content<</if>>
 export function parseConditionals(text, context, depth, renderBlockAwareMacroBody) {
     let result = text;
+    const truthyConditionToken = '__truthy__';
 
     while (true) {
         const ifMacros = extractIfBlockMacros(result);
@@ -525,7 +526,7 @@ export function parseConditionals(text, context, depth, renderBlockAwareMacroBod
             return current.index > rightmost.index ? current : rightmost;
         });
 
-        const partsMatch = macro.content.match(/^\s*([a-zA-Z_$][a-zA-Z0-9_$]*)\s+(.*?)>>([\s\S]*)$/);
+        const partsMatch = macro.content.match(/^\s*([a-zA-Z_$][a-zA-Z0-9_$]*)(?:\s+(.*?))?>>([\s\S]*)$/);
         if (!partsMatch) {
             // Invalid syntax, remove the macro
             const before = result.slice(0, macro.index);
@@ -535,7 +536,7 @@ export function parseConditionals(text, context, depth, renderBlockAwareMacroBod
         }
 
         const varName = partsMatch[1];
-        const conditionExpression = partsMatch[2].trim();
+        const conditionExpression = (partsMatch[2] || '').trim();
         const body = partsMatch[3];
 
         // Get variable value
@@ -547,11 +548,17 @@ export function parseConditionals(text, context, depth, renderBlockAwareMacroBod
         // Evaluate condition
         let conditionResult = false;
         try {
-            // Parse the condition expression to extract operator and comparison value
-            // Support text-based operators to avoid HTML conflicts with < and >
-            const comparisonMatch = conditionExpression.match(/^(equals|is|not equals|is not|less than or equal|at most|greater than or equal|at least|less than|greater than)\s+(.+)$/i);
-            
-            if (comparisonMatch) {
+            if (!conditionExpression) {
+                // Shorthand truthy check: <<if varName>>
+                conditionResult = Boolean(varValue);
+            } else {
+                // Parse the condition expression to extract operator and comparison value
+                // Support text-based operators to avoid HTML conflicts with < and >
+                const comparisonMatch = conditionExpression.match(/^(equals|is|not equals|is not|less than or equal|at most|greater than or equal|at least|less than|greater than)\s+(.+)$/i);
+                
+                if (!comparisonMatch) {
+                    conditionResult = false;
+                } else {
                 const operator = comparisonMatch[1].toLowerCase();
                 const compareValueStr = comparisonMatch[2].trim();
                 
@@ -601,6 +608,7 @@ export function parseConditionals(text, context, depth, renderBlockAwareMacroBod
                         conditionResult = varValue >= compareValue;
                         break;
                 }
+                }
             }
         } catch (error) {
             console.error('Conditional evaluation error:', error);
@@ -612,7 +620,7 @@ export function parseConditionals(text, context, depth, renderBlockAwareMacroBod
         const { html: innerHTML, useBlockMarkdown } = renderBlockAwareMacroBody(body, context, depth);
         
         // Encode the condition parts for data attributes
-        const encodedOperator = btoa(conditionExpression);
+        const encodedOperator = btoa(conditionExpression || truthyConditionToken);
         const displayStyle = conditionResult ? '' : 'display: none;';
         
         // Use span for inline, div for block content

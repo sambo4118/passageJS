@@ -164,6 +164,7 @@ function evaluateSafeMathExpression(expr) {
 
 window.updateConditionals = function() {
     const conditionals = document.querySelectorAll('.conditional');
+    const truthyConditionToken = '__truthy__';
     conditionals.forEach(elem => {
         const varName = elem.getAttribute('data-var');
         const encodedCondition = elem.getAttribute('data-condition');
@@ -182,9 +183,15 @@ window.updateConditionals = function() {
         // Evaluate condition
         let conditionResult = false;
         try {
-            const comparisonMatch = conditionExpression.match(/^(equals|is|not equals|is not|less than or equal|at most|greater than or equal|at least|less than|greater than)\s+(.+)$/i);
-            
-            if (comparisonMatch) {
+            if (conditionExpression === truthyConditionToken || conditionExpression.trim() === '') {
+                // Shorthand truthy check: <<if varName>>
+                conditionResult = Boolean(varValue);
+            } else {
+                const comparisonMatch = conditionExpression.match(/^(equals|is|not equals|is not|less than or equal|at most|greater than or equal|at least|less than|greater than)\s+(.+)$/i);
+                
+                if (!comparisonMatch) {
+                    conditionResult = false;
+                } else {
                 const operator = comparisonMatch[1].toLowerCase();
                 const compareValueStr = comparisonMatch[2].trim();
                 
@@ -230,6 +237,7 @@ window.updateConditionals = function() {
                     case 'at least':
                         conditionResult = varValue >= compareValue;
                         break;
+                }
                 }
             }
         } catch (error) {

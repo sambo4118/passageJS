@@ -121,6 +121,13 @@ ${num1} + ${num2} = <<calc>>${num1} + ${num2}<</calc>>
 ### `<<if varname comparison value>>`
 Conditionally displays content based on variable comparisons.
 
+Shorthand truthy form:
+```
+<<if variableName>>
+  content to show when variable is truthy
+<</if>>
+```
+
 **Syntax:**
 ```
 <<if variableName comparison value>>
@@ -150,6 +157,13 @@ Conditionally displays content based on variable comparisons.
 
 <<if score less than 70>>
   Failed.
+<</if>>
+```
+
+Truthy shorthand example:
+```
+<<if hasKey>>
+  You can open the door.
 <</if>>
 ```
 
