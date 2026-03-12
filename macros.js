@@ -174,6 +174,37 @@ export function restoreOnclickContent(text, protectedBlocks) {
     return result;
 }
 
+// Protect if blocks from early variable processing.
+export function protectIfContent(text) {
+    const protectedBlocks = [];
+    let counter = 0;
+    let result = text;
+
+    while (true) {
+        const ifBlocks = extractIfBlockMacros(result);
+        if (ifBlocks.length === 0) break;
+
+        const macro = ifBlocks.reduce((rightmost, current) => {
+            return current.index > rightmost.index ? current : rightmost;
+        });
+
+        const placeholder = `___IF_BLOCK_${counter}___`;
+        protectedBlocks.push({ placeholder, content: macro.fullMatch });
+        result = `${result.slice(0, macro.index)}${placeholder}${result.slice(macro.index + macro.fullMatch.length)}`;
+        counter++;
+    }
+
+    return { text: result, protectedBlocks };
+}
+
+export function restoreIfContent(text, protectedBlocks) {
+    let result = text;
+    for (const block of protectedBlocks) {
+        result = result.replace(block.placeholder, block.content);
+    }
+    return result;
+}
+
 // Variable macro parser
 export function parseVariables(text, context, extractBetweenDelimiter) {
     let result = text;
@@ -795,6 +826,17 @@ export function parseAnimations(text, context, depth, renderInlineMacroBody, ren
         if (typeof value !== 'string') return false;
         return /^(true|1|yes|on)$/i.test(value.trim());
     };
+
+    const coerceBooleanValue = (value) => {
+        if (typeof value === 'boolean') return value;
+        if (typeof value === 'number') return value !== 0;
+        if (typeof value === 'string') {
+            const normalized = value.trim().toLowerCase();
+            if (['true', '1', 'yes', 'on'].includes(normalized)) return true;
+            if (['false', '0', 'no', 'off', ''].includes(normalized)) return false;
+        }
+        return Boolean(value);
+    };
     
     // Parse <<fadein delay="1000">>text<</fadein>>
     const fadeins = extractBetweenDelimiter(result, '<<fadein', '<</fadein>>');
@@ -1038,10 +1080,13 @@ export function parseAnimations(text, context, depth, renderInlineMacroBody, ren
         const hasCheckedFlag = /\bchecked\b/i.test(macro.content);
 
         const hasExistingValue = context.state && context.state.variables && Object.prototype.hasOwnProperty.call(context.state.variables, varName);
-        if (!hasExistingValue && context.state && context.state.variables) {
-            const initialChecked = checkedValueMatch
-                ? parseBooleanAttribute(checkedValueMatch[1])
-                : hasCheckedFlag;
+
+        const hasExplicitCheckedDefault = Boolean(checkedValueMatch) || hasCheckedFlag;
+        const initialChecked = checkedValueMatch
+            ? parseBooleanAttribute(checkedValueMatch[1])
+            : hasCheckedFlag;
+
+        if (!hasExistingValue && hasExplicitCheckedDefault && context.state && context.state.variables) {
             context.state.variables[varName] = initialChecked;
         }
 
@@ -1049,20 +1094,16 @@ export function parseAnimations(text, context, depth, renderInlineMacroBody, ren
             if (!context.state.variableMetadata) {
                 context.state.variableMetadata = {};
             }
-            const existingMetadata = context.state.variableMetadata[varName] || {};
-            context.state.variableMetadata[varName] = {
-                ...existingMetadata,
-                type: 'boolean'
-            };
+            if (!context.state.variableMetadata[varName]) {
+                context.state.variableMetadata[varName] = {
+                    type: 'boolean'
+                };
+            }
         }
 
-        const currentChecked = Boolean(
-            context.state &&
-            context.state.variables &&
-            Object.prototype.hasOwnProperty.call(context.state.variables, varName)
-                ? context.state.variables[varName]
-                : false
-        );
+        const currentChecked = hasExistingValue
+            ? coerceBooleanValue(context.state.variables[varName])
+            : initialChecked;
 
         const labelText = labelMatch ? labelMatch[1] : '';
         const labelHTML = labelText ? parseInlineMarkdown(labelText) : '';

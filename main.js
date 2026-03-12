@@ -13,12 +13,25 @@ import {
     parseBlockMarkdown,
     protectOnclickContent,
     restoreOnclickContent,
+    protectIfContent,
+    restoreIfContent,
     activateAnimations
 } from './macros.js';
 
 window.activateAnimations = activateAnimations;
 
 window.updateVariableDisplays = function() {
+    const coerceBooleanValue = (value) => {
+        if (typeof value === 'boolean') return value;
+        if (typeof value === 'number') return value !== 0;
+        if (typeof value === 'string') {
+            const normalized = value.trim().toLowerCase();
+            if (['true', '1', 'yes', 'on'].includes(normalized)) return true;
+            if (['false', '0', 'no', 'off', ''].includes(normalized)) return false;
+        }
+        return Boolean(value);
+    };
+
     const displays = document.querySelectorAll('.var-display');
     displays.forEach(span => {
         const varName = span.getAttribute('data-var');
@@ -54,7 +67,7 @@ window.updateVariableDisplays = function() {
         const varName = checkbox.getAttribute('data-var');
         if (!varName || !(varName in gameState.variables)) return;
 
-        const nextChecked = Boolean(gameState.variables[varName]);
+        const nextChecked = coerceBooleanValue(gameState.variables[varName]);
         if (checkbox.checked !== nextChecked) {
             checkbox.checked = nextChecked;
         }
@@ -534,10 +547,15 @@ function processPassageMarkup(text, context = {}, depth = 0) {
     
     // Protect onclick and delayed content before variable processing
     const { text: textWithProtectedOnclick, protectedBlocks } = protectOnclickContent(protectedText);
+    const { text: textWithProtectedIf, protectedBlocks: protectedIfBlocks } = protectIfContent(textWithProtectedOnclick);
 
-    let processedText = parseBackgroundColor(textWithProtectedOnclick);
+    let processedText = parseBackgroundColor(textWithProtectedIf);
     processedText = parseVariablesAndSubstitutions(processedText, contextWithState, extractBetweenDelimiter);
     processedText = parseCalculations(processedText, contextWithState, extractBetweenDelimiter);
+
+    // Restore if content before evaluating conditionals.
+    processedText = restoreIfContent(processedText, protectedIfBlocks);
+
     processedText = parseConditionals(processedText, contextWithState, depth, renderBlockAwareMacroBody);
     processedText = parseRandom(processedText, { ...contextWithState, rng: gameState.rng }, depth, renderBlockAwareMacroBody);
     
