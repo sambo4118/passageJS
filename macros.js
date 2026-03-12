@@ -548,21 +548,20 @@ export function parseConditionals(text, context, depth, renderBlockAwareMacroBod
         // Evaluate condition
         let conditionResult = false;
         try {
-            if (!conditionExpression) {
-                // Shorthand truthy check: <<if varName>>
-                conditionResult = Boolean(varValue);
-            } else {
-                // Parse the condition expression to extract operator and comparison value
-                // Support text-based operators to avoid HTML conflicts with < and >
-                const comparisonMatch = conditionExpression.match(/^(equals|is|not equals|is not|less than or equal|at most|greater than or equal|at least|less than|greater than)\s+(.+)$/i);
-                
+            const evaluateSingleComparison = (rawExpression) => {
+                const expression = String(rawExpression || '').trim();
+                if (!expression) {
+                    return Boolean(varValue);
+                }
+
+                const comparisonMatch = expression.match(/^(equals|is|not equals|is not|less than or equal|at most|greater than or equal|at least|less than|greater than)\s+(.+)$/i);
                 if (!comparisonMatch) {
-                    conditionResult = false;
-                } else {
+                    return false;
+                }
+
                 const operator = comparisonMatch[1].toLowerCase();
                 const compareValueStr = comparisonMatch[2].trim();
-                
-                // Parse the comparison value
+
                 let compareValue;
                 if (compareValueStr === 'true') {
                     compareValue = true;
@@ -573,41 +572,61 @@ export function parseConditionals(text, context, depth, renderBlockAwareMacroBod
                 } else if (compareValueStr === 'undefined') {
                     compareValue = undefined;
                 } else if (/^["'].*["']$/.test(compareValueStr)) {
-                    // String literal
                     compareValue = compareValueStr.slice(1, -1);
                 } else if (!isNaN(compareValueStr)) {
-                    // Number
                     compareValue = parseFloat(compareValueStr);
                 } else {
-                    // Try as string
                     compareValue = compareValueStr;
                 }
-                
-                // Perform comparison based on text operator
+
                 switch (operator) {
                     case 'equals':
                     case 'is':
-                        conditionResult = varValue === compareValue;
-                        break;
+                        return varValue === compareValue;
                     case 'not equals':
                     case 'is not':
-                        conditionResult = varValue !== compareValue;
-                        break;
+                        return varValue !== compareValue;
                     case 'less than':
-                        conditionResult = varValue < compareValue;
-                        break;
+                        return varValue < compareValue;
                     case 'greater than':
-                        conditionResult = varValue > compareValue;
-                        break;
+                        return varValue > compareValue;
                     case 'less than or equal':
                     case 'at most':
-                        conditionResult = varValue <= compareValue;
-                        break;
+                        return varValue <= compareValue;
                     case 'greater than or equal':
                     case 'at least':
-                        conditionResult = varValue >= compareValue;
-                        break;
+                        return varValue >= compareValue;
+                    default:
+                        return false;
                 }
+            };
+
+            if (!conditionExpression) {
+                conditionResult = Boolean(varValue);
+            } else {
+                const parts = conditionExpression.split(/\s+(and|or)\s+/i).map(part => part.trim()).filter(Boolean);
+
+                if (parts.length === 0) {
+                    conditionResult = false;
+                } else if (parts.length === 1) {
+                    conditionResult = evaluateSingleComparison(parts[0]);
+                } else {
+                    let runningResult = evaluateSingleComparison(parts[0]);
+                    for (let i = 1; i < parts.length; i += 2) {
+                        const connector = (parts[i] || '').toLowerCase();
+                        const nextCondition = parts[i + 1] || '';
+                        const nextResult = evaluateSingleComparison(nextCondition);
+
+                        if (connector === 'and') {
+                            runningResult = runningResult && nextResult;
+                        } else if (connector === 'or') {
+                            runningResult = runningResult || nextResult;
+                        } else {
+                            runningResult = false;
+                            break;
+                        }
+                    }
+                    conditionResult = runningResult;
                 }
             }
         } catch (error) {

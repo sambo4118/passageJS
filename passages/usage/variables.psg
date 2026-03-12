@@ -133,6 +133,14 @@ Shorthand truthy form:
 <<if variableName comparison value>>
   content to show if true
 <</if>>
+
+<<if variableName comparison value or comparison value>>
+  content to show if any condition is true
+<</if>>
+
+<<if variableName comparison value and comparison value>>
+  content to show if all conditions are true
+<</if>>
 ```
 
 **Comparison Operators:**
@@ -157,6 +165,14 @@ Shorthand truthy form:
 
 <<if score less than 70>>
   Failed.
+<</if>>
+
+<<if score is 90 or is 100>>
+  Perfect band!
+<</if>>
+
+<<if score at least 70 and less than 90>>
+  Mid band score.
 <</if>>
 ```
 
