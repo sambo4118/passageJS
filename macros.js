@@ -752,19 +752,47 @@ export function parseRandom(text, context, depth, renderBlockAwareMacroBody) {
 
 // Background color macro parser
 export function parseBackgroundColor(text) {
-    const bgPattern = /<<bgcolor\s+color=["']([^"']+)["']\s*>>/g;
-    let foundColor = false;
-    
-    text = text.replace(bgPattern, (match, color) => {
-        document.body.style.backgroundColor = color;
-        foundColor = true;
+    const backgroundPattern = /<<background\b([^>]*)>>/g;
+    let foundBackground = false;
+
+    text = text.replace(backgroundPattern, (match, attrs) => {
+        const attributes = {};
+        const attrPattern = /([a-zA-Z_-]+)\s*=\s*["']([^"']*)["']/g;
+        let attrMatch;
+
+        while ((attrMatch = attrPattern.exec(attrs)) !== null) {
+            attributes[attrMatch[1].toLowerCase()] = attrMatch[2];
+        }
+
+        if (attributes.color) {
+            document.body.style.backgroundColor = attributes.color;
+        }
+
+        if (attributes.img) {
+            const safeImagePath = attributes.img.replace(/"/g, '\\"');
+            document.body.style.backgroundImage = `url("${safeImagePath}")`;
+            document.body.style.backgroundSize = 'cover';
+            document.body.style.backgroundPosition = 'center center';
+            document.body.style.backgroundRepeat = 'no-repeat';
+        } else {
+            document.body.style.backgroundImage = 'none';
+            document.body.style.backgroundSize = '';
+            document.body.style.backgroundPosition = '';
+            document.body.style.backgroundRepeat = '';
+        }
+
+        foundBackground = true;
         return '';
     });
-    
-    if (!foundColor) {
+
+    if (!foundBackground) {
         document.body.style.backgroundColor = '#101114';
+        document.body.style.backgroundImage = 'none';
+        document.body.style.backgroundSize = '';
+        document.body.style.backgroundPosition = '';
+        document.body.style.backgroundRepeat = '';
     }
-    
+
     return text;
 }
 

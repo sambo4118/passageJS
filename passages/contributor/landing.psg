@@ -1,4 +1,4 @@
-<<bgcolor color='#1f1f1f'>>
+<<background color='#1f1f1f'>>
 # Contributing to PassageJS
 
 Thanks for your interest in contributing! Whether you're fixing bugs, adding features, or improving documentation, your help is appreciated.
@@ -71,7 +71,7 @@ git commit -m "Add: descriptive commit message"
 
 **Good commit messages:**
 - `Add: wiggle macro for animated text`
-- `Fix: bgcolor macro not parsing single quotes`
+- `Fix: background macro not parsing single quotes`
 - `Docs: update README with new macro syntax`
 - `Improve: typewriter animation performance`
 

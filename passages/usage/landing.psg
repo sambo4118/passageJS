@@ -1,4 +1,4 @@
-<<bgcolor color='#1f1f1f'>>
+
 
 # PassageJS Macro Reference
 
@@ -34,13 +34,13 @@ The header passage is an **optional** file at `passages/menu/header.psg` that is
 
 **How it works:**
 - Create `passages/menu/header.psg`
-- Put any macros or content in it (e.g. `<<bgcolor>>`, `<<textcolor>>`, variables)
+- Put any macros or content in it (e.g. `<<background>>`, `<<textcolor>>`, variables)
 - It renders above every passage automatically
 - If the file doesn't exist, nothing happens
 
 **Example `passages/menu/header.psg`:**
 ```
-<<bgcolor color='#1f1f1f'>>
+<<background color='#1f1f1f'>>
 <<textcolor color='#e8e8e8'>>
 ```
 
@@ -50,22 +50,24 @@ This sets a consistent background and text color across all passages without rep
 
 ## Background & Styling
 
-### `<<bgcolor>>`
-Changes the background color of the page.
+### `<<background>>`
+Changes the page background color, and can optionally set a background image.
 
 **Syntax:**
 ```
-<<bgcolor color="color-value">>
+<<background color="color-value">>
+<<background color="color-value" img="imgpath">>
 ```
 
 **Examples:**
 ```
-<<bgcolor color="#1f1f1f">>
-<<bgcolor color='darkblue'>>
-<<bgcolor color="rgb(30, 30, 30)">>
+<<background color="#1f1f1f">>
+<<background color='darkblue'>>
+<<background color="rgb(30, 30, 30)">>
+<<background color="#101114" img="assets/bg/forest.jpg">>
 ```
 
-**Note:** Accepts both single and double quotes. Only the first bgcolor macro on a page is applied.
+**Note:** Accepts both single and double quotes. If multiple `<<background>>` macros appear, the last one on the page wins.
 
 ### `<<textcolor>>`
 Changes text color globally or for a specific block.

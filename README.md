@@ -173,8 +173,9 @@ Go back to the previous passage:
 Changes the background color of the entire page:
 
 ```markdown
-<<bgcolor color="#1f1f1f">>
-<<bgcolor color='darkblue'>>
+<<background color="#1f1f1f">>
+<<background color='darkblue'>>
+<<background color="#101114" img="assets/bg/forest.jpg">>
 ```
 
 ### Text Color
@@ -321,13 +322,13 @@ The header passage is an optional file at `passages/menu/header.psg` that is aut
 
 **How it works:**
 - On every passage navigation, the engine renders `menu/header` first
-- All macros work inside the header (`<<bgcolor>>`, `<<textcolor>>`, variables, etc.)
+- All macros work inside the header (`<<background>>`, `<<textcolor>>`, variables, etc.)
 - The header HTML appears above the main passage content
 - If the file doesn't exist, nothing happens — it's completely optional
 
 **Example `passages/menu/header.psg`:**
 ```markdown
-<<bgcolor color='#1f1f1f'>>
+<<background color='#1f1f1f'>>
 <<textcolor color='#e8e8e8'>>
 ```
 
@@ -445,7 +446,7 @@ Server runs at: http://127.0.0.1:3000
 Here's a sample passage showcasing various features:
 
 ```markdown
-<<bgcolor color="#1f1f1f">>
+<<background color="#1f1f1f">>
 
 # The Beginning
 

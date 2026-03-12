@@ -1,4 +1,4 @@
-<<bgcolor color='#1f1f1f'>>
+
 # welcome to the passageJS project!
 
 **<<typewriter speed="20">>this is a project intended to be an alternative to Twine or even RenPY. with custom animations, smart transitions, and infinite scalability<</typewriter>>**
@@ -33,15 +33,3 @@ Transitions are optional passages that bridge randomly selected content. When yo
 **Location:** `currentGroup/transitions/T-currentID-targetID.psg`
 
 This creates smooth narrative connections between random passages without needing to manually link every possibility!
-
-<small> pro-tip, click the page </small>
-
-<<onclick>>
----
-Woah, the page *revealed* something when you clicked?  
-thats crazy <<onclick text="click again">>
-you made it to an example story! congrats, isn't this a great read me?  
-[[<<hop>>yeah it's awesome!<</hop>>|example/title/*]]  
-[[no! this sucks|example/evil/this-sucks]]
-<</onclick>>
-<</onclick>>

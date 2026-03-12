@@ -529,7 +529,7 @@ async function renderPassage(passageName) {
         const { marked } = await import('https://cdn.jsdelivr.net/npm/marked@11/+esm');
         window.marked = marked;
 
-        // Render the global header passage first (applies bgcolor, scripts, etc.)
+        // Render the global header passage first (applies background macro, scripts, etc.)
         await renderHeader();
 
         const processedMarkup = processPassageMarkup(parsedText, {
@@ -891,7 +891,7 @@ document.addEventListener('click', (click) => {
 
 const DEFAULT_PASSAGE = 'menu/title-screen';
 
-const DEFAULT_TITLE_SCREEN = `<<bgcolor color='#1f1f1f'>>
+const DEFAULT_TITLE_SCREEN = `<<background color='#1f1f1f'>>
 # Welcome to PassageJS
 
 **Your story starts here.**
