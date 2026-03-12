@@ -1148,6 +1148,27 @@ export function parseAnimations(text, context, depth, renderInlineMacroBody, ren
         result = result.replace(macro.fullMatch, html);
     }
 
+    // Parse <<blink fade>>text<</blink>> or <<blink>>text<</blink>>
+    const blinks = extractBetweenDelimiter(result, '<<blink', '<</blink>>');
+    for (const macro of blinks) {
+        let textContent = macro.content;
+        let fade = false;
+
+        const attrMatch = macro.content.match(/^(.*?)>>([\s\S]*)$/);
+        if (attrMatch) {
+            const attrs = attrMatch[1];
+            textContent = attrMatch[2];
+            fade = /\bfade\b/i.test(attrs);
+        } else if (macro.content.startsWith('>>')) {
+            textContent = macro.content.slice(2);
+        }
+
+        const htmlContent = renderInlineMacroBody(textContent, context, depth);
+        const className = fade ? 'blink blink-fade' : 'blink';
+        const html = `<span class="${className}">${htmlContent}</span>`;
+        result = result.replace(macro.fullMatch, html);
+    }
+
     // Parse <<button text="label" onclick="js code">>
     const buttons = extractBetweenDelimiter(result, '<<button', '>>');
     for (const macro of buttons) {
