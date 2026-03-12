@@ -917,6 +917,23 @@ export function parseBackgroundColor(text) {
     return text;
 }
 
+// Title macro parser
+export function parseTitle(text) {
+    const titlePattern = /<<title>>([\s\S]*?)<<\/title>>/g;
+    let lastTitle = null;
+
+    text = text.replace(titlePattern, (_match, content) => {
+        lastTitle = content.trim();
+        return '';
+    });
+
+    if (lastTitle !== null) {
+        document.title = lastTitle;
+    }
+
+    return text;
+}
+
 // Text color macro parser
 export function parseTextColor(text, context, depth, renderBlockAwareMacroBody, extractBetweenDelimiter) {
     let result = text;

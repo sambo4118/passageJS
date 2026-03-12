@@ -1,6 +1,7 @@
 // Import macro parsing functions
 import {
     parseBackgroundColor,
+    parseTitle,
     parseTextColor,
     parseAnimations,
     parseVariables,
@@ -592,6 +593,7 @@ function processPassageMarkup(text, context = {}, depth = 0) {
     const { text: textWithProtectedIf, protectedBlocks: protectedIfBlocks } = protectIfContent(textWithProtectedOnclick);
 
     let processedText = parseBackgroundColor(textWithProtectedIf);
+    processedText = parseTitle(processedText);
     processedText = parseVariablesAndSubstitutions(processedText, contextWithState, extractBetweenDelimiter);
     processedText = parseCalculations(processedText, contextWithState, extractBetweenDelimiter);
 
