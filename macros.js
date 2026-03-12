@@ -501,11 +501,7 @@ export function parseCalculations(text, context, extractBetweenDelimiter) {
 // Safe math expression evaluator - only allows math operations
 function evaluateSafeMathExpression(expr) {
     // Remove whitespace
-    const cleaned = expr.replace(/\s+/g, '');
-    
-    // Whitelist: only allow numbers, basic operators, parentheses, dots for decimals,
-    // and safe Math functions
-    const allowedPattern = /^[0-9+\-*/.()&|<>=!%\s]+$/;
+
     const mathFunctionPattern = /Math\.(abs|acos|asin|atan|atan2|ceil|cos|exp|floor|log|max|min|pow|random|round|sin|sqrt|tan|PI|E)/g;
     const dateFunctionPattern = /Date\.now\(\)/g;
     
@@ -528,22 +524,18 @@ function evaluateSafeMathExpression(expr) {
     testExpr = testExpr.replace(/now/g, '');
     testExpr = testExpr.replace(/(abs|acos|asin|atan|atan2|ceil|cos|exp|floor|log|max|min|pow|random|round|sin|sqrt|tan|PI|E)/g, '');
     
-    // If anything else remains, it's potentially dangerous
     if (testExpr.length > 0) {
         throw new Error('Expression contains disallowed characters or functions');
     }
     
-    // Additional safety: block common injection patterns
     if (/(\bfunction\b|=>|\beval\b|\bconstructor\b|\bwindow\b|\bdocument\b|\blocalStorage\b|\bimport\b|\brequire\b)/i.test(expr)) {
         throw new Error('Expression contains disallowed keywords');
     }
     
-    // Create a sandboxed evaluation context with Math and Date available
     const sandboxedFunction = new Function('Math', 'Date', 'return (' + expr + ')');
     return sandboxedFunction(Math, Date);
 }
 
-// Conditional macro parser - <<if varname comparison value>>content<</if>>
 export function parseConditionals(text, context, depth, renderBlockAwareMacroBody) {
     let result = text;
     const truthyConditionToken = '__truthy__';
@@ -671,12 +663,9 @@ export function parseConditionals(text, context, depth, renderBlockAwareMacroBod
             conditionResult = false;
         }
 
-        // Encode the condition parts for data attributes
         const conditionPayload = `${negateResult ? negationTokenPrefix : ''}${conditionExpression || truthyConditionToken}`;
         const encodedOperator = btoa(conditionPayload);
 
-        // Only process the body when the condition is true to avoid
-        // side-effects (e.g. <<var>> declarations) running when they shouldn't.
         let innerHTML = '';
         let useBlockMarkdown = false;
         if (conditionResult) {
@@ -687,7 +676,6 @@ export function parseConditionals(text, context, depth, renderBlockAwareMacroBod
 
         const displayStyle = conditionResult ? '' : 'display: none;';
         
-        // Use span for inline, div for block content
         const tagName = useBlockMarkdown ? 'div' : 'span';
         const replacement = `<${tagName} class="conditional" data-var="${varName}" data-condition="${encodedOperator}" style="${displayStyle}">${innerHTML}</${tagName}>`;
 
