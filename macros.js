@@ -911,15 +911,7 @@ export function parseBackgroundColor(text) {
     });
 
     if (!foundBackground) {
-        if (typeof window.passageBackgroundRequestId !== 'number') {
-            window.passageBackgroundRequestId = 0;
-        }
-        window.passageBackgroundRequestId += 1;
-        document.body.style.backgroundColor = '#101114';
-        document.body.style.backgroundImage = 'none';
-        document.body.style.backgroundSize = '';
-        document.body.style.backgroundPosition = '';
-        document.body.style.backgroundRepeat = '';
+        return text;
     }
 
     return text;
