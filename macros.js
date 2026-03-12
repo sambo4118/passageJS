@@ -756,6 +756,11 @@ export function parseTextColor(text, context, depth, renderBlockAwareMacroBody, 
 export function parseAnimations(text, context, depth, renderInlineMacroBody, renderBlockAwareMacroBody, extractBetweenDelimiter) {
     let result = text;
     const runtimeState = context.state || { onclickRevealCounter: 0 };
+
+    const parseBooleanAttribute = (value) => {
+        if (typeof value !== 'string') return false;
+        return /^(true|1|yes|on)$/i.test(value.trim());
+    };
     
     // Parse <<fadein delay="1000">>text<</fadein>>
     const fadeins = extractBetweenDelimiter(result, '<<fadein', '<</fadein>>');
@@ -919,6 +924,119 @@ export function parseAnimations(text, context, depth, renderInlineMacroBody, ren
             result = result.replace(macro.fullMatch, html);
         }
     }
+
+    // Parse <<input var="name" placeholder="Type..." value="" type="string">>
+    const inputs = extractBetweenDelimiter(result, '<<input', '>>');
+    for (const macro of inputs) {
+        const varMatch = macro.content.match(/var=["']([a-zA-Z_$][a-zA-Z0-9_$]*)["']/);
+        if (!varMatch) {
+            result = result.replace(macro.fullMatch, '');
+            continue;
+        }
+
+        const varName = varMatch[1];
+        const placeholderMatch = macro.content.match(/placeholder=["']([\s\S]*?)["']/);
+        const valueMatch = macro.content.match(/value=["']([\s\S]*?)["']/);
+        const typeMatch = macro.content.match(/type=["'](string|number|boolean|json)["']/i);
+        const inputTypeMatch = macro.content.match(/input=["']([a-zA-Z0-9_-]+)["']/i);
+
+        const explicitType = typeMatch ? typeMatch[1].toLowerCase() : null;
+        const metadataType = context.state && context.state.variableMetadata && context.state.variableMetadata[varName]
+            ? context.state.variableMetadata[varName].type
+            : null;
+        const effectiveType = explicitType || metadataType || 'string';
+
+        const hasExistingValue = context.state && context.state.variables && Object.prototype.hasOwnProperty.call(context.state.variables, varName);
+        if (!hasExistingValue && context.state && context.state.variables) {
+            let initialValue = valueMatch ? valueMatch[1] : '';
+            if (effectiveType === 'number') {
+                const parsed = parseFloat(initialValue);
+                initialValue = Number.isNaN(parsed) ? 0 : parsed;
+            } else if (effectiveType === 'boolean') {
+                initialValue = parseBooleanAttribute(initialValue);
+            } else if (effectiveType === 'json') {
+                try {
+                    initialValue = initialValue ? JSON.parse(initialValue) : null;
+                } catch (_error) {
+                    initialValue = null;
+                }
+            }
+            context.state.variables[varName] = initialValue;
+        }
+
+        if (context.state) {
+            if (!context.state.variableMetadata) {
+                context.state.variableMetadata = {};
+            }
+            const existingMetadata = context.state.variableMetadata[varName] || {};
+            context.state.variableMetadata[varName] = {
+                ...existingMetadata,
+                type: effectiveType
+            };
+        }
+
+        let currentValue = '';
+        if (context.state && context.state.variables && Object.prototype.hasOwnProperty.call(context.state.variables, varName)) {
+            const rawValue = context.state.variables[varName];
+            if (rawValue !== null && rawValue !== undefined) {
+                currentValue = String(rawValue);
+            }
+        }
+
+        const placeholder = placeholderMatch ? placeholderMatch[1] : '';
+        const htmlInputType = inputTypeMatch ? inputTypeMatch[1] : (effectiveType === 'number' ? 'number' : 'text');
+        const html = `<input class="var-input" data-var="${varName}" data-type="${effectiveType}" type="${htmlInputType}" value="${escapeHtml(currentValue)}"${placeholder ? ` placeholder="${escapeHtml(placeholder)}"` : ''}>`;
+        result = result.replace(macro.fullMatch, html);
+    }
+
+    // Parse <<checkbox var="name" label="Text" checked>>
+    const checkboxes = extractBetweenDelimiter(result, '<<checkbox', '>>');
+    for (const macro of checkboxes) {
+        const varMatch = macro.content.match(/var=["']([a-zA-Z_$][a-zA-Z0-9_$]*)["']/);
+        if (!varMatch) {
+            result = result.replace(macro.fullMatch, '');
+            continue;
+        }
+
+        const varName = varMatch[1];
+        const labelMatch = macro.content.match(/label=["']([\s\S]*?)["']/);
+        const checkedValueMatch = macro.content.match(/checked=["']([\s\S]*?)["']/i);
+        const hasCheckedFlag = /\bchecked\b/i.test(macro.content);
+
+        const hasExistingValue = context.state && context.state.variables && Object.prototype.hasOwnProperty.call(context.state.variables, varName);
+        if (!hasExistingValue && context.state && context.state.variables) {
+            const initialChecked = checkedValueMatch
+                ? parseBooleanAttribute(checkedValueMatch[1])
+                : hasCheckedFlag;
+            context.state.variables[varName] = initialChecked;
+        }
+
+        if (context.state) {
+            if (!context.state.variableMetadata) {
+                context.state.variableMetadata = {};
+            }
+            const existingMetadata = context.state.variableMetadata[varName] || {};
+            context.state.variableMetadata[varName] = {
+                ...existingMetadata,
+                type: 'boolean'
+            };
+        }
+
+        const currentChecked = Boolean(
+            context.state &&
+            context.state.variables &&
+            Object.prototype.hasOwnProperty.call(context.state.variables, varName)
+                ? context.state.variables[varName]
+                : false
+        );
+
+        const labelText = labelMatch ? labelMatch[1] : '';
+        const labelHTML = labelText ? parseInlineMarkdown(labelText) : '';
+        const html = labelText
+            ? `<label class="interactive-checkbox"><input class="var-checkbox" data-var="${varName}" type="checkbox"${currentChecked ? ' checked' : ''}> <span>${labelHTML}</span></label>`
+            : `<input class="var-checkbox" data-var="${varName}" type="checkbox"${currentChecked ? ' checked' : ''}>`;
+        result = result.replace(macro.fullMatch, html);
+    }
     
     // Parse <<onclick action="...">>text<</onclick>>
     while (true) {
@@ -1000,6 +1118,28 @@ export function getInheritedAnimationDelay(element) {
 
 // Activate typewriter animations
 export function activateAnimations() {
+    document.querySelectorAll('.var-input').forEach(elem => {
+        if (elem.dataset.bound) return;
+        elem.dataset.bound = 'true';
+
+        elem.addEventListener('input', () => {
+            const varName = elem.dataset.var;
+            if (!varName || typeof window.setPassageVariable !== 'function') return;
+            window.setPassageVariable(varName, elem.value, elem.dataset.type || 'string');
+        });
+    });
+
+    document.querySelectorAll('.var-checkbox').forEach(elem => {
+        if (elem.dataset.bound) return;
+        elem.dataset.bound = 'true';
+
+        elem.addEventListener('change', () => {
+            const varName = elem.dataset.var;
+            if (!varName || typeof window.setPassageVariable !== 'function') return;
+            window.setPassageVariable(varName, elem.checked, 'boolean');
+        });
+    });
+
     document.querySelectorAll('.typewriter').forEach(elem => {
         if (elem.dataset.animated) return; 
         elem.dataset.animated = 'true';

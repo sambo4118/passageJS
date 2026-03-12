@@ -354,4 +354,73 @@ You're at full health!
 <<var demoHasPotion type="boolean">>true<</var>>
 <</onclick>>
 
+---
+
+## Form Input Macros
+
+Use these macros to let the player type or toggle values directly, with automatic variable updates.
+
+### `<<input>>`
+Creates a typeable input bound to a variable.
+
+**Syntax:**
+```
+<<input var="variableName" placeholder="Type here" value="default" type="string">>
+```
+
+**Attributes:**
+- `var` (required) - Variable name to bind
+- `placeholder` (optional) - Placeholder text
+- `value` (optional) - Initial value when variable does not exist yet
+- `type` (optional) - `string`, `number`, `boolean`, or `json` (default: `string`)
+- `input` (optional) - HTML input type like `text`, `number`, `password`
+
+**Example:**
+```
+<<var playerName>>Guest<</var>>
+Name: <<input var="playerName" placeholder="Type your name">>
+Hello, ${playerName}!
+```
+
+**Live Example:**
+
+<<var profileName>>Guest<</var>>
+Name: <<input var="profileName" placeholder="Type your name">>
+
+Welcome, **${profileName}**.
+
+### `<<checkbox>>`
+Creates a toggleable checkbox bound to a boolean variable.
+
+**Syntax:**
+```
+<<checkbox var="variableName" label="Label text" checked>>
+```
+
+**Attributes:**
+- `var` (required) - Variable name to bind
+- `label` (optional) - Checkbox label text (supports markdown)
+- `checked` (optional) - Default checked state for new variables
+
+**Example:**
+```
+<<var acceptsTerms type="boolean">>false<</var>>
+<<checkbox var="acceptsTerms" label="I accept the terms">>
+
+<<if acceptsTerms is true>>
+  Continue unlocked.
+<</if>>
+```
+
+**Live Example:**
+
+<<var wantsNotifications type="boolean">>false<</var>>
+<<checkbox var="wantsNotifications" label="Enable **notifications**">>
+
+Notifications enabled: ${wantsNotifications}
+
+<<if wantsNotifications is true>>
+You will receive updates.
+<</if>>
+
 [[Back to Usage|usage/landing]]  

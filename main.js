@@ -35,10 +35,79 @@ window.updateVariableDisplays = function() {
             span.innerHTML = displayValue;
         }
     });
+
+    const inputDisplays = document.querySelectorAll('.var-input');
+    inputDisplays.forEach(input => {
+        const varName = input.getAttribute('data-var');
+        if (!varName || !(varName in gameState.variables)) return;
+        if (document.activeElement === input) return;
+
+        const value = gameState.variables[varName];
+        const nextValue = value === null || value === undefined ? '' : String(value);
+        if (input.value !== nextValue) {
+            input.value = nextValue;
+        }
+    });
+
+    const checkboxDisplays = document.querySelectorAll('.var-checkbox');
+    checkboxDisplays.forEach(checkbox => {
+        const varName = checkbox.getAttribute('data-var');
+        if (!varName || !(varName in gameState.variables)) return;
+
+        const nextChecked = Boolean(gameState.variables[varName]);
+        if (checkbox.checked !== nextChecked) {
+            checkbox.checked = nextChecked;
+        }
+    });
     
     window.updateCalculations();
     
     window.updateConditionals();
+};
+
+window.setPassageVariable = function(varName, rawValue, typeHint = '') {
+    if (!varName) return;
+
+    if (!gameState.variableMetadata) {
+        gameState.variableMetadata = {};
+    }
+
+    const metadataType = gameState.variableMetadata[varName] ? gameState.variableMetadata[varName].type : '';
+    const effectiveType = (typeHint || metadataType || 'string').toLowerCase();
+
+    let processedValue = rawValue;
+
+    if (effectiveType === 'number') {
+        const parsed = parseFloat(String(rawValue).trim());
+        processedValue = Number.isNaN(parsed) ? 0 : parsed;
+    } else if (effectiveType === 'boolean') {
+        if (typeof rawValue === 'boolean') {
+            processedValue = rawValue;
+        } else {
+            const normalized = String(rawValue).trim().toLowerCase();
+            processedValue = normalized === 'true' || normalized === '1' || normalized === 'yes' || normalized === 'on';
+        }
+    } else if (effectiveType === 'json') {
+        if (typeof rawValue === 'object') {
+            processedValue = rawValue;
+        } else {
+            try {
+                processedValue = String(rawValue).trim() ? JSON.parse(String(rawValue)) : null;
+            } catch (_error) {
+                processedValue = null;
+            }
+        }
+    } else {
+        processedValue = rawValue === null || rawValue === undefined ? '' : String(rawValue);
+    }
+
+    gameState.variables[varName] = processedValue;
+    gameState.variableMetadata[varName] = {
+        ...(gameState.variableMetadata[varName] || {}),
+        type: effectiveType
+    };
+
+    window.updateVariableDisplays();
 };
 
 window.updateCalculations = function() {

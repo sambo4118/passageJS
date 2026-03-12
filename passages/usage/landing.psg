@@ -221,6 +221,43 @@ Text appears suddenly (no fade) after a delay.
 
 ## Interactive Macros
 
+### `<<input>>`
+Creates a variable-bound typeable input.
+
+**Syntax:**
+```
+<<input var="name" placeholder="Type here" value="Guest" type="string">>
+```
+
+**Live demo:**
+
+<<var demoInputName>>Guest<</var>>
+Name: <<input var="demoInputName" placeholder="Type a name">>
+Hello, ${demoInputName}!
+
+---
+
+### `<<checkbox>>`
+Creates a variable-bound toggle checkbox.
+
+**Syntax:**
+```
+<<checkbox var="isEnabled" label="Enable feature" checked>>
+```
+
+**Live demo:**
+
+<<var demoCheckboxState type="boolean">>false<</var>>
+<<checkbox var="demoCheckboxState" label="Enable **demo mode**">>
+
+Current value: ${demoCheckboxState}
+
+<<if demoCheckboxState is true>>
+Demo mode is ON.
+<</if>>
+
+---
+
 ### `<<onclick>>` (Reveal Mode)
 Progressive reveal system - click labeled text to reveal hidden content.
 

@@ -225,6 +225,41 @@ Text appears suddenly after a delay. Time is in milliseconds. Supports markdown.
 
 ## Interactive Macros
 
+### Input
+
+Creates a variable-bound typeable input field.
+
+```markdown
+<<var playerName>>Guest<</var>>
+Name: <<input var="playerName" placeholder="Type your name">>
+Hello, ${playerName}!
+```
+
+Supported attributes:
+- `var` (required)
+- `placeholder` (optional)
+- `value` (optional default when variable is unset)
+- `type` (`string`, `number`, `boolean`, `json`)
+- `input` (HTML input type, e.g. `text`, `number`, `password`)
+
+### Checkbox
+
+Creates a variable-bound toggle checkbox.
+
+```markdown
+<<var hasKey type="boolean">>false<</var>>
+<<checkbox var="hasKey" label="I found the key">>
+
+<<if hasKey is true>>
+  The door unlocks.
+<</if>>
+```
+
+Supported attributes:
+- `var` (required)
+- `label` (optional, supports markdown)
+- `checked` (optional default checked state)
+
 ### Onclick Reveal Mode
 
 Progressive reveal system using `onclick` - click labeled text to reveal hidden content. Perfect for branching narrative moments.
