@@ -671,13 +671,20 @@ export function parseConditionals(text, context, depth, renderBlockAwareMacroBod
             conditionResult = false;
         }
 
-        // Render content based on condition and wrap in a conditional container
-        // that can be dynamically re-evaluated
-        const { html: innerHTML, useBlockMarkdown } = renderBlockAwareMacroBody(body, context, depth);
-        
         // Encode the condition parts for data attributes
         const conditionPayload = `${negateResult ? negationTokenPrefix : ''}${conditionExpression || truthyConditionToken}`;
         const encodedOperator = btoa(conditionPayload);
+
+        // Only process the body when the condition is true to avoid
+        // side-effects (e.g. <<var>> declarations) running when they shouldn't.
+        let innerHTML = '';
+        let useBlockMarkdown = false;
+        if (conditionResult) {
+            const rendered = renderBlockAwareMacroBody(body, context, depth);
+            innerHTML = rendered.html;
+            useBlockMarkdown = rendered.useBlockMarkdown;
+        }
+
         const displayStyle = conditionResult ? '' : 'display: none;';
         
         // Use span for inline, div for block content
