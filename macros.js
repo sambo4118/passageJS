@@ -1191,7 +1191,15 @@ export function parseAnimations(text, context, depth, renderInlineMacroBody, ren
     for (const macro of clicklinks) {
         const targetMatch = macro.content.match(/["']([^"']+)["']/);
         if (targetMatch) {
-            const target = targetMatch[1];
+            let target = targetMatch[1];
+            // Resolve relative references using the current passage's group
+            if (!target.includes('/') && context.currentPassageName) {
+                const parts = context.currentPassageName.split('/');
+                if (parts.length >= 2) {
+                    const groupPath = parts.slice(0, -1).join('/');
+                    target = `${groupPath}/${target}`;
+                }
+            }
             const html = `<div class="click-anywhere-link" data-target="${target}" style="display:none;"></div>`;
             result = result.replace(macro.fullMatch, html);
         } else {
