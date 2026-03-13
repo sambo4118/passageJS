@@ -17,7 +17,7 @@ This page documents all available macros for creating dynamic, interactive passa
 
 ## Variables, Calculations & Conditionals
 
-**[[Complete Variable System Documentation|usage/variables]]**
+[[**Complete Variable System Documentation**|usage/variables]]
 
 See the dedicated guide for:
 - Variable declaration and types (`<<var name>>`, `${name}`)

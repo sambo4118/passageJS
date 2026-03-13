@@ -499,7 +499,7 @@ export function parseCalculations(text, context, extractBetweenDelimiter) {
 }
 
 // Safe math expression evaluator - only allows math operations
-function evaluateSafeMathExpression(expr) {
+export function evaluateSafeMathExpression(expr) {
     // Remove whitespace
 
     const mathFunctionPattern = /Math\.(abs|acos|asin|atan|atan2|ceil|cos|exp|floor|log|max|min|pow|random|round|sin|sqrt|tan|PI|E)/g;

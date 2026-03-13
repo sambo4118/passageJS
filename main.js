@@ -1,23 +1,5 @@
-// Import macro parsing functions
-import {
-    parseBackgroundColor,
-    parseTitle,
-    parseTextColor,
-    parseAnimations,
-    parseVariables,
-    parseVariablesAndSubstitutions,
-    substituteVariables,
-    parseCalculations,
-    parseConditionals,
-    parseRandom,
-    parseInlineMarkdown,
-    parseBlockMarkdown,
-    protectOnclickContent,
-    restoreOnclickContent,
-    protectIfContent,
-    restoreIfContent,
-    activateAnimations
-} from './macros.js';
+import { activateAnimations } from './macros.js';
+import { parse as astParse, render as astRender } from './ast-engine.js';
 
 window.activateAnimations = activateAnimations;
 
@@ -297,6 +279,21 @@ window.updateConditionals = function() {
     });
 };
 
+// Renders pre-processed HTML from the AST renderer (onclick, delayed content).
+// Unlike renderDynamicContent, this does NOT re-process markup — it just injects HTML.
+window.displayRenderedContent = function(elementId, html) {
+    const element = document.getElementById(elementId);
+    if (!element) return;
+    element.innerHTML = html;
+    window.activateAnimations();
+    window.updateVariableDisplays();
+    if (window.hljs) {
+        element.querySelectorAll('pre code').forEach((block) => {
+            window.hljs.highlightElement(block);
+        });
+    }
+};
+
 // Expose dynamic markup processor for runtime rendering (onclick, delayed, etc.)
 window.renderDynamicContent = async function(elementId, rawMarkup) {
     const element = document.getElementById(elementId);
@@ -463,12 +460,12 @@ const HEADER_PASSAGE = 'menu/header';
 
 async function renderHeader() {
     try {
-        const { canonicalReference, parsedText } = await loadPassage(HEADER_PASSAGE);
-
         if (!window.marked) {
             const { marked } = await import('https://cdn.jsdelivr.net/npm/marked@11/+esm');
             window.marked = marked;
         }
+
+        const { canonicalReference, parsedText } = await loadPassage(HEADER_PASSAGE);
 
         const processedMarkup = processPassageMarkup(parsedText, {
             currentPassageName: canonicalReference,
@@ -525,10 +522,10 @@ function restoreCodeBlocks(text, codeBlocks) {
 
 async function renderPassage(passageName) {
     try {
-        const { canonicalReference, parsedText } = await loadPassage(passageName);
-
         const { marked } = await import('https://cdn.jsdelivr.net/npm/marked@11/+esm');
         window.marked = marked;
+
+        const { canonicalReference, parsedText } = await loadPassage(passageName);
 
         // Render the global header passage first (applies background macro, scripts, etc.)
         await renderHeader();
@@ -577,61 +574,20 @@ function processPassageMarkup(text, context = {}, depth = 0) {
         return text;
     }
 
-    const contextWithState = {
+    const ctx = {
         ...context,
         state: context.state || {
             onclickRevealCounter: 0,
             variables: gameState.variables,
             variableMetadata: gameState.variableMetadata
-        }
+        },
+        rng: gameState.rng
     };
 
     const { text: protectedText, codeBlocks } = protectCodeBlocks(text);
-    
-    // Protect onclick and delayed content before variable processing
-    const { text: textWithProtectedOnclick, protectedBlocks } = protectOnclickContent(protectedText);
-    const { text: textWithProtectedIf, protectedBlocks: protectedIfBlocks } = protectIfContent(textWithProtectedOnclick);
-
-    let processedText = parseBackgroundColor(textWithProtectedIf);
-    processedText = parseTitle(processedText);
-    processedText = parseVariablesAndSubstitutions(processedText, contextWithState, extractBetweenDelimiter);
-    processedText = parseCalculations(processedText, contextWithState, extractBetweenDelimiter);
-
-    // Restore if content before evaluating conditionals.
-    processedText = restoreIfContent(processedText, protectedIfBlocks);
-
-    processedText = parseConditionals(processedText, contextWithState, depth, renderBlockAwareMacroBody);
-    processedText = parseRandom(processedText, { ...contextWithState, rng: gameState.rng }, depth, renderBlockAwareMacroBody);
-    
-    // Restore onclick content before parseAnimations processes it
-    processedText = restoreOnclickContent(processedText, protectedBlocks);
-    
-    processedText = parseAnimations(processedText, contextWithState, depth, renderInlineMacroBody, renderBlockAwareMacroBody, extractBetweenDelimiter);
-    processedText = parseTextColor(processedText, contextWithState, depth, renderBlockAwareMacroBody, extractBetweenDelimiter);
-
-    return restoreCodeBlocks(processedText, codeBlocks);
-}
-
-function renderInlineMacroBody(body, context, depth) {
-    const processedBody = processPassageMarkup(body, context, depth + 1);
-    return parseInlineMarkdown(processedBody);
-}
-
-function renderBlockAwareMacroBody(body, context, depth) {
-    const processedBody = processPassageMarkup(body, context, depth + 1);
-    const useBlockMarkdown = parseBlockMarkdown(processedBody);
-
-    if (useBlockMarkdown && window.marked) {
-        return {
-            html: window.marked.parse(processedBody).trim(),
-            useBlockMarkdown
-        };
-    }
-
-    return {
-        html: parseInlineMarkdown(processedBody),
-        useBlockMarkdown
-    };
+    const ast = astParse(protectedText);
+    const result = astRender(ast, ctx, depth);
+    return restoreCodeBlocks(result, codeBlocks);
 }
 
 // Passage linking and navigation helpers.
@@ -752,17 +708,20 @@ function parseLinks(text, currentPassageName) {
                     throw new Error(`Random target "${targetValue}" has no group context.`);
                 }
 
-                const linkHTML = `<a href="#" class="passage-link" data-type="random" data-group="${escapeHtml(resolvedGroup)}">${linkText}</a>`;
+                const parsedLinkText = window.marked ? window.marked.parseInline(linkText) : linkText;
+                const linkHTML = `<a href="#" class="passage-link" data-type="random" data-group="${escapeHtml(resolvedGroup)}">${parsedLinkText}</a>`;
                 result = result.replace(link.fullMatch, linkHTML);
                 continue;
             }
 
             const normalizedTarget = normalizePassageReference(targetValue, currentGroupPath);
-            const linkHTML = `<a href="#" class="passage-link" data-type="direct" data-target="${escapeHtml(normalizedTarget)}">${linkText}</a>`;
+            const parsedLinkText = window.marked ? window.marked.parseInline(linkText) : linkText;
+            const linkHTML = `<a href="#" class="passage-link" data-type="direct" data-target="${escapeHtml(normalizedTarget)}">${parsedLinkText}</a>`;
             result = result.replace(link.fullMatch, linkHTML);
         } catch (error) {
             const message = error instanceof Error ? error.message : String(error);
-            const invalidHTML = `<span class="passage-link-error" title="${escapeHtml(message)}">${linkText}</span>`;
+            const parsedLinkText = window.marked ? window.marked.parseInline(linkText) : linkText;
+            const invalidHTML = `<span class="passage-link-error" title="${escapeHtml(message)}">${parsedLinkText}</span>`;
             result = result.replace(link.fullMatch, invalidHTML);
         }
     }
