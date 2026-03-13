@@ -887,6 +887,17 @@ document.addEventListener('click', (click) => {
     if (click.defaultPrevented) return;
     if (shouldIgnoreGlobalRevealClick(click.target)) return;
 
+    // Check for click-anywhere-link navigation
+    const clickLink = document.querySelector('.click-anywhere-link[data-target]');
+    if (clickLink) {
+        const target = clickLink.dataset.target;
+        if (target) {
+            click.preventDefault();
+            renderPassage(target);
+            return;
+        }
+    }
+
     triggerNextAutoOnclickReveal();
 });
 

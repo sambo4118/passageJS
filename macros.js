@@ -1186,6 +1186,19 @@ export function parseAnimations(text, context, depth, renderInlineMacroBody, ren
         result = result.replace(macro.fullMatch, html);
     }
 
+    // Parse <<clicklink "passage-name">> — click anywhere on the page to navigate
+    const clicklinks = extractBetweenDelimiter(result, '<<clicklink', '>>');
+    for (const macro of clicklinks) {
+        const targetMatch = macro.content.match(/["']([^"']+)["']/);
+        if (targetMatch) {
+            const target = targetMatch[1];
+            const html = `<div class="click-anywhere-link" data-target="${target}" style="display:none;"></div>`;
+            result = result.replace(macro.fullMatch, html);
+        } else {
+            result = result.replace(macro.fullMatch, '');
+        }
+    }
+
     // Parse <<button text="label" onclick="js code">>
     const buttons = extractBetweenDelimiter(result, '<<button', '>>');
     for (const macro of buttons) {
