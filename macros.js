@@ -1169,25 +1169,13 @@ export function parseAnimations(text, context, depth, renderInlineMacroBody, ren
         result = result.replace(macro.fullMatch, html);
     }
 
-    // Parse <<vignette blink>>content<</vignette>> or <<vignette>>content<</vignette>>
-    const vignettes = extractBetweenDelimiter(result, '<<vignette', '<</vignette>>');
+    // Parse <<vignette blink>> or <<vignette>> (self-closing, full-page overlay)
+    const vignettes = extractBetweenDelimiter(result, '<<vignette', '>>');
     for (const macro of vignettes) {
-        let textContent = macro.content;
-        let blink = false;
-
-        const attrMatch = macro.content.match(/^(.*?)>>([\s\S]*)$/);
-        if (attrMatch) {
-            const attrs = attrMatch[1];
-            textContent = attrMatch[2];
-            blink = /\bblink\b/i.test(attrs);
-        } else if (macro.content.startsWith('>>')) {
-            textContent = macro.content.slice(2);
-        }
-
-        const htmlContent = renderBlockAwareMacroBody(textContent, context, depth);
-        const className = blink ? 'vignette vignette-blink' : 'vignette';
-        const inner = htmlContent.useBlockMarkdown ? htmlContent.html : htmlContent.html;
-        const html = `<span class="${className}">${inner}</span>`;
+        const attrs = macro.content || '';
+        const blink = /\bblink\b/i.test(attrs);
+        const className = blink ? 'vignette-overlay vignette-blink' : 'vignette-overlay';
+        const html = `<div class="${className}"></div>`;
         result = result.replace(macro.fullMatch, html);
     }
 
