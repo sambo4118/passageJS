@@ -1154,28 +1154,35 @@ export function parseAnimations(text, context, depth, renderInlineMacroBody, ren
         let textContent = macro.content;
         let fade = false;
 
+        let speed = null;
+
         const attrMatch = macro.content.match(/^(.*?)>>([\s\S]*)$/);
         if (attrMatch) {
             const attrs = attrMatch[1];
             textContent = attrMatch[2];
             fade = /\bfade\b/i.test(attrs);
+            const speedMatch = attrs.match(/speed="(\d+(?:\.\d+)?)"/i);
+            if (speedMatch) speed = speedMatch[1];
         } else if (macro.content.startsWith('>>')) {
             textContent = macro.content.slice(2);
         }
 
         const htmlContent = renderInlineMacroBody(textContent, context, depth);
         const className = fade ? 'blink blink-fade' : 'blink';
-        const html = `<span class="${className}">${htmlContent}</span>`;
+        const styleAttr = speed ? ` style="animation-duration: ${speed}ms;"` : '';
+        const html = `<span class="${className}"${styleAttr}>${htmlContent}</span>`;
         result = result.replace(macro.fullMatch, html);
     }
 
-    // Parse <<vignette blink>> or <<vignette>> (self-closing, full-page overlay)
+    // Parse <<vignette blink speed="500">> or <<vignette>> (self-closing, full-page overlay)
     const vignettes = extractBetweenDelimiter(result, '<<vignette', '>>');
     for (const macro of vignettes) {
         const attrs = macro.content || '';
         const blink = /\bblink\b/i.test(attrs);
+        const speedMatch = attrs.match(/speed="(\d+(?:\.\d+)?)"/i);
         const className = blink ? 'vignette-overlay vignette-blink' : 'vignette-overlay';
-        const html = `<div class="${className}"></div>`;
+        const styleAttr = (blink && speedMatch) ? ` style="animation-duration: ${speedMatch[1]}ms;"` : '';
+        const html = `<div class="${className}"${styleAttr}></div>`;
         result = result.replace(macro.fullMatch, html);
     }
 
