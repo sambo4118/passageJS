@@ -1,41 +1,14 @@
 {
   "name": "passagejs",
-  "version": "1.0.0",
-  "description": "A dynamic, Twine-like narrative engine with markdown support, custom animations, and smart transitions",
-  "main": "server.js",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
   "scripts": {
-    "start": "node server.js",
-    "dev": "node server.js",
-    "manifests": "node generate-manifests.js",
-    "build": "node build.js",
-    "release": "node build.js && cd dist && zip -r ../passagejs-release.zip . && echo '\n✓ passagejs-release.zip ready'",
-    "update": "node sync-template.js",
-    "update:dry": "node sync-template.js --dry-run"
-  },
-  "keywords": [
-    "narrative",
-    "interactive-fiction",
-    "storytelling",
-    "markdown",
-    "twine",
-    "game-engine",
-    "passages",
-    "visual-novel"
-  ],
-  "author": "",
-  "license": "MIT",
-  "repository": {
-    "type": "git",
-    "url": "https://github.com/YOUR_USERNAME/passagejs.git"
-  },
-  "bugs": {
-    "url": "https://github.com/YOUR_USERNAME/passagejs/issues"
-  },
-  "homepage": "https://github.com/YOUR_USERNAME/passagejs#readme",
-  "engines": {
-    "node": ">=18"
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
   },
   "devDependencies": {
-    "esbuild": "^0.27.3"
+    "vite": "^8.0.10"
   }
 }
