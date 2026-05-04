@@ -94,8 +94,9 @@ function parseArgs(state) {
     const args = [];
 
     if (peek(state).type === 'R_PAREN') return args;
+    args.push(parseOneArg(state));
     while (accept(state, 'COMMA')) {
-        params.push(parseOneArg(state));
+        args.push(parseOneArg(state));
     }
 
     return args;

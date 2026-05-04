@@ -23,7 +23,7 @@ export function tokenize(text) {
         if (char === '=')  { tokens.push({ type: 'EQUALS', index: index, line: line }); remainingText = remainingText.slice(1); continue; }
 
 
-        const wordMatch = remainingText.match(/^[^@(){}\n]+/);
+        const wordMatch = remainingText.match(/^[^@(){}\n,=]+/);
         if (wordMatch) {
             tokens.push({ type : 'TEXT', value: wordMatch[0], index: index, line: line })
             remainingText = remainingText.slice(wordMatch[0].length)

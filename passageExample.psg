@@ -1,0 +1,6 @@
+@var (this) {21}
+@var (that) {20}
+
+@if (this > that) {
+    blah blah blah
+}
