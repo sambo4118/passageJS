@@ -6,6 +6,7 @@ import { parse } from './src/parser.js'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const PASSAGES_DIR = path.resolve(__dirname, 'passages')
+const ROOT_PASSAGE_PATH = '/passage/menu/title-screen.psg'
 
 export default defineConfig({
   plugins: [
@@ -13,23 +14,31 @@ export default defineConfig({
       name: 'passage-api',
       configureServer(server) {
         server.middlewares.use(async (req, res, next) => {
-          // Match /passage/<name>.psg
-          const match = req.url && req.url.match(/^\/passage\/([^/?#]+)\.psg(?:\?.*)?$/)
+          if (!req.url) return next()
+
+          // Route the site root to the title screen passage.
+          if (req.url === '/' || req.url.startsWith('/?')) {
+            req.url = req.url === '/' ? ROOT_PASSAGE_PATH : `${ROOT_PASSAGE_PATH}${req.url.slice(1)}`
+          }
+
+          // Match /passage/<name>.psg, including nested paths like menu/title-screen.
+          const match = req.url.match(/^\/passage\/([^?#]+\.psg)(?:\?.*)?$/)
           if (!match) return next()
 
-          const name = decodeURIComponent(match[1])
+          const encodedPath = match[1]
+          const name = decodeURIComponent(encodedPath.replace(/\.psg$/, ''))
 
-          // Block path traversal: only allow simple file names
-          if (name.includes('/') || name.includes('\\') || name.includes('..')) {
+          // Block obvious traversal attempts before resolving full path.
+          if (name.includes('..') || name.startsWith('/') || name.startsWith('\\')) {
             res.statusCode = 400
             res.end(JSON.stringify({ error: 'Invalid passage name' }))
             return
           }
 
-          const filePath = path.join(PASSAGES_DIR, `${name}.psg`)
+          const filePath = path.resolve(PASSAGES_DIR, `${name}.psg`)
 
-          // Defense in depth: ensure resolved path is still inside PASSAGES_DIR
-          if (!filePath.startsWith(PASSAGES_DIR + path.sep)) {
+          // Defense in depth: ensure resolved path is still inside PASSAGES_DIR.
+          if (path.relative(PASSAGES_DIR, filePath).startsWith('..') || path.isAbsolute(path.relative(PASSAGES_DIR, filePath))) {
             res.statusCode = 400
             res.end(JSON.stringify({ error: 'Invalid passage name' }))
             return
