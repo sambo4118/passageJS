@@ -1,3 +1,5 @@
+import { parseInline } from 'marked';
+
 class Node {
     constructor(type, name) {
         this.type = type;
@@ -10,13 +12,31 @@ export class Text extends Node {
         super('TEXT');
         this.value = value;
     }
+    render(container) {
+        const html = parseInline(this.value);
+        const div = document.createElement('div');
+        div.innerHTML = html;
+        while (div.firstChild) container.appendChild(div.firstChild);
+    }
 }
 
 export class Link extends Node {
-    constructor(name, target) {
+    constructor(argvalues, content) {
         super('LINK');
-        this.name = name;
-        this.target = target;
+        this.target = argvalues.target;
+        this.content = content;
+    }
+    static args = [
+            { name: 'target', required: true },
+        ]
+    render(container, state, navigate) {
+        const link = document.createElement('a');
+        link.textContent = this.target;
+        link.addEventListener('click', (e) => {
+            e.preventDefault();
+            navigate(this.target);
+        });
+        container.appendChild(link);
     }
 }
 
@@ -25,8 +45,8 @@ export class TextSize extends Node {
         super('TAG', 'textsize');
         this.size = argvalues.size;
         this.content = content;
-        this.args = [
-            { name: 'size', required: true }
-        ]
     }
+    static args = [
+        { name: 'size', required: true }
+    ]
 }

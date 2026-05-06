@@ -17,29 +17,42 @@ function buildRegistry() {
 
 const nodeRegistry = buildRegistry();
 
+function makeErrorNode(message) {
+    return new NodeTypes.Text(`[Semantic error] ${message}`);
+}
+
+function convertToken(token) {
+    if (token.type === 'TAG') {
+        return convertArgs(token);
+    }
+
+    if (token.type === 'TEXT') {
+        return new NodeTypes.Text(token.value);
+    }
+
+    if (token.type === 'NEWLINE') {
+        return new NodeTypes.Newline();
+    }
+
+    if (typeof token.value === 'string') {
+        return new NodeTypes.Text(token.value);
+    }
+
+    return null;
+}
+
 export function parseSemantics(tokens) {
     const out = [];
 
     for (const token of tokens) {
         if (!token) continue;
 
-        if (token.type === 'TAG') {
-            const node = convertArgs(token);
+        try {
+            const node = convertToken(token);
             if (node) out.push(node);
-            continue;
-        }
-
-        if (token.type === 'TEXT') {
-            out.push(new NodeTypes.Text(token.value));
-            continue;
-        }
-
-        if (token.type === 'NEWLINE') {
-            out.push(new NodeTypes.Newline());
-            continue;
-        }
-        if (typeof token.value === 'string') {
-            out.push(new NodeTypes.Text(token.value));
+        } catch (error) {
+            const message = error instanceof Error ? error.message : String(error);
+            out.push(makeErrorNode(message));
         }
     }
 
@@ -50,13 +63,13 @@ function convertArgs(tag) {
 
     const NodeClass = nodeRegistry.get(tag.name.toLowerCase());
     if (!NodeClass) {
-        console.warn(`No Node class found for tag "${tag.name}"`);
-        return;
+        return makeErrorNode(`No Node class found for tag "${tag.name}"`);
     }
 
     const filledArgs = {};
+    const content = tag.body ? parseSemantics(tag.body) : [];
 
-    if (!NodeClass.args) return new NodeClass(filledArgs);
+    if (!NodeClass.args) return new NodeClass(filledArgs, content);
 
     NodeClass.args.forEach((argDefinition, index) => {
         const argNode = tag.args?.[index];
@@ -68,5 +81,5 @@ function convertArgs(tag) {
 
         filledArgs[argDefinition.name] = parsedValue;
     });
-    return new NodeClass(filledArgs);
+    return new NodeClass(filledArgs, content);
 }

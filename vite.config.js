@@ -6,8 +6,6 @@ import { parse } from './src/parser.js'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const PASSAGES_DIR = path.resolve(__dirname, 'passages')
-const ROOT_PASSAGE_PATH = '/passage/menu/title-screen.psg'
-
 export default defineConfig({
   plugins: [
     {
@@ -15,11 +13,6 @@ export default defineConfig({
       configureServer(server) {
         server.middlewares.use(async (req, res, next) => {
           if (!req.url) return next()
-
-          // Route the site root to the title screen passage.
-          if (req.url === '/' || req.url.startsWith('/?')) {
-            req.url = req.url === '/' ? ROOT_PASSAGE_PATH : `${ROOT_PASSAGE_PATH}${req.url.slice(1)}`
-          }
 
           // Match /passage/<name>.psg, including nested paths like menu/title-screen.
           const match = req.url.match(/^\/passage\/([^?#]+\.psg)(?:\?.*)?$/)
