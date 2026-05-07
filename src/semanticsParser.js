@@ -61,7 +61,7 @@ export function parseSemantics(tokens) {
 
 function convertArgs(tag) {
 
-    const NodeClass = nodeRegistry.get(tag.name.toLowerCase());
+    const NodeClass = nodeRegistry.get(tag.name.toLowerCase().trim());
     if (!NodeClass) {
         return makeErrorNode(`No Node class found for tag "${tag.name}"`);
     }

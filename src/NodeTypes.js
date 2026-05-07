@@ -1,15 +1,23 @@
 import { parseInline } from 'marked';
 
 class Node {
-    constructor(type, name) {
-        this.type = type;
+    constructor(name) {
         this.name = name || this.constructor.name;
+    }
+}
+
+export class Newline extends Node {
+    constructor() {
+        super();
+    }
+    render(container) {
+        container.appendChild(document.createElement('br'));
     }
 }
 
 export class Text extends Node {
     constructor(value) {
-        super('TEXT');
+        super();
         this.value = value;
     }
     render(container) {
@@ -20,9 +28,42 @@ export class Text extends Node {
     }
 }
 
+function targetToString(target) {
+    if (typeof target === 'string') return target.trim();
+    if (Array.isArray(target)) {
+            return target
+        .map((n) => (n && typeof n === 'object' && 'value' in n ? String(n.value) : ''))
+        .join('')
+        .trim();
+    }
+    if (target && typeof target === 'object' && 'value' in target) return String(target.value).trim();
+    return '';
+}
+
+function contentToString(content) {
+    if (!Array.isArray(content)) return '';
+    return content
+        .map((node) => {
+            if (!node || typeof node !== 'object') return '';
+            if (node.name === 'Text') return String(node.value ?? '');
+            if (node.name === 'Newline') return ' ';
+            return '';
+        })
+        .join('')
+        .trim();
+}
+
+function targetToHref(target) {
+    const normalized = target
+        .replace(/^\/+/, '')
+        .replace(/^passages?\//, '')
+        .replace(/\.psg$/i, '');
+    return `/passage/${normalized}.psg`;
+}
+
 export class Link extends Node {
     constructor(argvalues, content) {
-        super('LINK');
+        super();
         this.target = argvalues.target;
         this.content = content;
     }
@@ -30,11 +71,16 @@ export class Link extends Node {
             { name: 'target', required: true },
         ]
     render(container, state, navigate) {
+        const target = targetToString(this.target);
+        const label = contentToString(this.content) || target;
+
         const link = document.createElement('a');
-        link.textContent = this.target;
+        link.className = 'passage-link';
+        link.href = targetToHref(target);
+        link.textContent = label;
         link.addEventListener('click', (e) => {
             e.preventDefault();
-            navigate(this.target);
+            navigate(target);
         });
         container.appendChild(link);
     }
@@ -42,7 +88,7 @@ export class Link extends Node {
 
 export class TextSize extends Node {
     constructor(argvalues, content) {
-        super('TAG', 'textsize');
+        super();
         this.size = argvalues.size;
         this.content = content;
     }

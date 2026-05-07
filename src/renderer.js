@@ -11,6 +11,26 @@ export function render(nodes, state, navigate) {
 }
 
 function revive(node) {
+    if (!node || typeof node !== 'object') return node;
+
     const Class = NodeTypes[node.name];
-    return Object.assign(new Class(), node);
+    if (!Class) {
+        throw new Error(`Unknown node type: ${node.name}`);
+    }
+
+    const instance = Object.create(Class.prototype);
+
+    for (const [key, value] of Object.entries(node)) {
+        if (Array.isArray(value)) {
+            instance[key] = value.map((v) => {
+                return v && typeof v === 'object' && 'name' in v ? revive(v) : v;
+            });
+        } else if (value && typeof value === 'object' && 'name' in value) {
+            instance[key] = revive(value);
+        } else {
+            instance[key] = value;
+        }
+    }
+
+    return instance;
 }

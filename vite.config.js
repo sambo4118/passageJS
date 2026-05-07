@@ -15,7 +15,7 @@ export default defineConfig({
           if (!req.url) return next()
 
           // Match /passage/<name>.psg, including nested paths like menu/title-screen.
-          const match = req.url.match(/^\/passage\/([^?#]+\.psg)(?:\?.*)?$/)
+          const match = req.url.match(/^\/passages\/([^?#]+\.psg)(?:\?.*)?$/)
           if (!match) return next()
 
           const encodedPath = match[1]

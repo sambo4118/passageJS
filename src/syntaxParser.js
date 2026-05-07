@@ -47,11 +47,15 @@ function parseTag(state) {
     const atToken   = expect(state, 'AT');
     const nameToken = expect(state, 'TEXT');
 
+    skipWhitespaceText(state);
+
     let args = null;
     if (accept(state, 'L_PAREN')) {
         args = parseArgs(state, ['R_PAREN'], 'PARAMS');
         expect(state, 'R_PAREN');
     }
+
+    skipWhitespaceText(state);
 
     let body = null;
     if (accept(state, 'L_BRACE')) {
@@ -67,6 +71,12 @@ function parseTag(state) {
         index: atToken.index,
         line: atToken.line,
     };
+}
+
+function skipWhitespaceText(state) {
+    while (peek(state)?.type === 'TEXT' && !peek(state).value.trim()) {
+        eat(state);
+    }
 }
 
 function parseText(state, outerStopTypes, textType = 'TEXT') {
