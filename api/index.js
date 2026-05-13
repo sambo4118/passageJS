@@ -5,7 +5,7 @@ import { fileURLToPath } from "node:url";
 import { readFile } from "node:fs/promises";
 import { ok } from "node:assert";
 import { hostname } from "node:os";
-import { parse } from "../src/parsing/parser.js";
+import { compile } from "../src/parsing/compile.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -33,7 +33,7 @@ app.get("/api/passages/:slug", async (request, reply) => {
     try {
         const text = await readFile(filePath, "utf-8");
 
-        return parse(text);
+        return compile(text);
 
     } catch (err) {
         if (err && err.code === "ENOENT") {

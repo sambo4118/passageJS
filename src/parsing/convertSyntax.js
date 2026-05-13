@@ -4,17 +4,19 @@ export function convertSyntax(tokens) {
     let state = {};
 
     const convertToText = (token) => {
-        if (token.type === "text") return token.value;
-        if (token.type === "newline") return "\n";
-        if (token.type === "quote") return '"';
-        if (token.type === "backtick") return "`";
-        if (token.type === "at") return "@";
-        if (token.type === "openparenthesis") return "(";
-        if (token.type === "closeparenthesis") return ")";
-        if (token.type === "openbracket") return "[";
-        if (token.type === "closebracket") return "]";
-        if (token.type === "openbrace") return "{";
-        if (token.type === "closebrace") return "}";
+        if (token.type === "text")              return token.value;
+        if (token.type === "newline")           return "\n";
+        if (token.type === "quote")             return '"';
+        if (token.type === "backtick")          return "`";
+        if (token.type === "at")                return "@";
+        if (token.type === "openparenthesis")   return "(";
+        if (token.type === "closeparenthesis")  return ")";
+        if (token.type === "openbracket")       return "[";
+        if (token.type === "closebracket")      return "]";
+        if (token.type === "openbrace")         return "{";
+        if (token.type === "closebrace")        return "}";
+        if (token.type === "pipe")              return "|";
+        if (token.type === "dollar")            return "$";
         return "";
     }
 
@@ -80,7 +82,14 @@ export function convertSyntax(tokens) {
             continue;
         }
 
-        result.push({type: "text", value: convertToText(token)});
+        if (token.type === "dollar") {
+            let variableName = "";
+            while (tokens[index + 1].type === "openbracket") {
+                index++;
+                variableName += convertToText(tokens[index]);
+            }
+            result.push({type: "variableRef", value: convertToText(token)});
+        }
     }
 
     return result;

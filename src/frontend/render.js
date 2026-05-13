@@ -13,6 +13,7 @@ function revive(json) {
 
 }
 export function render(nodes) {
+    nodes = revive(nodes);
     linkDependencies(nodes);
     return nodes.map(node => node.render({container: document.body}));
 }

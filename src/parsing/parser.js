@@ -42,6 +42,11 @@ export function parse(tags) {
             continue;
         }
 
+        if (tag.type === "varreference") {
+            result.push(new VarReference({tag, Args: parse(tag.value)}));
+            continue;
+        }
+
     }
 
 }
@@ -52,7 +57,7 @@ function parseAt(tags, index) {
 
     const handler = resolveTagHandler(tag.name);
     if (handler) {
-        const instance = new handler({tag, parsedArgs: parse(tag.args), parsedBody: parse(tag.body)});
+        const instance = new handler({tag, Args: parse(tag.args), Body: parse(tag.body)});
         result = instance;
     }
     index++;

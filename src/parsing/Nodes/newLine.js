@@ -9,4 +9,8 @@ export class Newline {
         container.appendChild(newlineElement);
         return newlineElement;
     }
+
+    output() {
+        return "\n";
+    }
 }

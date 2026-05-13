@@ -27,6 +27,7 @@ export function lexer(text) {
         if (char === "`")  { flush(); tokens.push({ type: "backtick"            }); continue; }
         if (char === "\\") { flush(); tokens.push({ type: "backslash"           }); continue; }
         if (char === "|")  { flush(); tokens.push({ type: "pipe"                }); continue; }
+        if (char === "$")  { flush(); tokens.push({ type: "dollar"              }); continue; }
 
         runningText += char;
     

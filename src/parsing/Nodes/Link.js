@@ -9,12 +9,17 @@ export class Link {
     render({container}) {
         const linkElement = document.createElement("span");
         linkElement.textContent = this.display;
-        container.addeventListener("click", () => {});
+        this.display.forEach(node => node.render({container: linkElement}));
+        container.addEventListener("click", () => this.navigateTo());
         container.appendChild(linkElement);
         return linkElement;
     }
 
     navigateTo() {
         
+    }
+
+    output() {
+        return this.location.map(node => node.output()).join("");
     }
 }
