@@ -5,4 +5,16 @@ export class Link {
         this.display = parsedDisplay;
     }
     static name = "link";
+
+    render({container}) {
+        const linkElement = document.createElement("span");
+        linkElement.textContent = this.display;
+        container.addeventListener("click", () => {});
+        container.appendChild(linkElement);
+        return linkElement;
+    }
+
+    navigateTo() {
+        
+    }
 }
