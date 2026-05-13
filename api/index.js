@@ -5,6 +5,7 @@ import { fileURLToPath } from "node:url";
 import { readFile } from "node:fs/promises";
 import { ok } from "node:assert";
 import { hostname } from "node:os";
+import { parse } from "../src/parsing/parser.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
