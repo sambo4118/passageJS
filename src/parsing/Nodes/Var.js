@@ -9,10 +9,16 @@ export class Var {
     static name = "var";
 
     addDependent(node) {
+        if (!this.dependents) this.dependents = [];
         this.dependents.push(node);
     }
     
     output() {
         return this.args.map(node => node.output()).join("");
+    }
+
+    render({container}) {
+        // Var nodes don't render directly, only their references do
+        return null;
     }
 }

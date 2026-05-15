@@ -3,8 +3,6 @@ import cors from "@fastify/cors";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { readFile } from "node:fs/promises";
-import { ok } from "node:assert";
-import { hostname } from "node:os";
 import { compile } from "../src/parsing/compile.js";
 
 const __filename = fileURLToPath(import.meta.url);
@@ -14,7 +12,8 @@ const passagesDir = path.resolve(__dirname, "../passages");
 const app = Fastify({ logger: true });
 
 await app.register(cors, { origin: true });
-app.get("api/health", async () => {
+
+app.get("/api/health", async () => {
     return { ok: true };
 });
 
@@ -32,9 +31,7 @@ app.get("/api/passages/:slug", async (request, reply) => {
 
     try {
         const text = await readFile(filePath, "utf-8");
-
         return compile(text);
-
     } catch (err) {
         if (err && err.code === "ENOENT") {
             return reply.status(404).send({ error: "Passage not found" });

@@ -1,16 +1,20 @@
-import lexer from "./lexer.js";
 import * as NodeTypes from "./Nodes/nodeIndex.js";
 
-const nodeRegistry = {}
+const nodeRegistry = {};
 
 for (const [key, NodeClass] of Object.entries(NodeTypes)) {
-    if (NodeClass.name) {
-        nodeRegistry[NodeClass.name] = NodeClass;
+    if (typeof NodeClass !== "function") continue;
+    if (typeof key === "string") {
+        nodeRegistry[key.toLowerCase()] = NodeClass;
+    }
+    if (typeof NodeClass.name === "string") {
+        nodeRegistry[NodeClass.name.toLowerCase()] = NodeClass;
     }
 }
 
 function resolveTagHandler(tagName) {
-    return nodeRegistry[tagName.toLowerCase()];
+    if (typeof tagName !== "string") return null;
+    return nodeRegistry[tagName.toLowerCase()] || null;
 }
 
 export function parse(tags) {
@@ -21,12 +25,12 @@ export function parse(tags) {
         index++;
         const tag = tags[index];
         if (tag.type === "text") {
-            result.push(new Text({tag}));
+            result.push(new NodeTypes.Text({tag}));
             continue;
         }
 
         if (tag.type === "newline") {
-            result.push(new Newline({tag}));
+            result.push(new NodeTypes.Newline({tag}));
             continue;
         }
 
@@ -38,28 +42,36 @@ export function parse(tags) {
         }
 
         if (tag.type === "link") {
-            result.push(new Link({tag, parsedLocation: parse(tag.location), parsedDisplay: parse(tag.display)}));
+            result.push(new NodeTypes.Link({tag, parsedLocation: parse(tag.location), parsedDisplay: parse(tag.display)}));
             continue;
         }
 
         if (tag.type === "varreference") {
-            result.push(new VarReference({tag, Args: parse(tag.value)}));
+            result.push(new NodeTypes.VarReference({tag, Args: parse(tag.value)}));
             continue;
         }
 
     }
 
+    return result;
+
 }
 
 function parseAt(tags, index) {
-    let result = {type: "at"};
-    let tag = tags[index + 1];
+    let result = new NodeTypes.Text({ tag: { value: "" } });
+    const tag = tags[index];
 
-    const handler = resolveTagHandler(tag.name);
+    const handler = resolveTagHandler(tag?.name);
     if (handler) {
-        const instance = new handler({tag, Args: parse(tag.args), Body: parse(tag.body)});
+        const instance = new handler({
+            tag,
+            Args: parse(tag.args || []),
+            Body: parse(tag.body || [])
+        });
         result = instance;
+    } else {
+        const name = typeof tag?.name === "string" ? tag.name : "";
+        result = new NodeTypes.Text({ tag: { value: `@${name}` } });
     }
-    index++;
     return {result, index};
 }

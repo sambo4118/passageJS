@@ -1,25 +1,36 @@
 export class Link {
-    constructor({tag, parsedLocation, parsedDisplay}) {
-        this.name = Link.name;
-        this.location = parsedLocation;
-        this.display = parsedDisplay;
-    }
-    static name = "link";
+  constructor({ parsedLocation, parsedDisplay, navigate }) {
+    this.name = "link";
+    this.location = parsedLocation;
+    this.display = parsedDisplay;
+    this.navigate = navigate;
+  }
 
-    render({container}) {
-        const linkElement = document.createElement("span");
-        linkElement.textContent = this.display;
-        this.display.forEach(node => node.render({container: linkElement}));
-        container.addEventListener("click", () => this.navigateTo());
-        container.appendChild(linkElement);
-        return linkElement;
-    }
+  output() {
+    return this.location.map(node => node.output()).join("");
+  }
 
-    navigateTo() {
-        
-    }
+  navigateTo() {
+    const slug = this.output().trim();
+    if (!slug) return;
+    if (typeof this.navigate === "function") this.navigate(slug);
+  }
 
-    output() {
-        return this.location.map(node => node.output()).join("");
-    }
+  render({ container, navigate }) {
+    this.navigate = navigate;
+    const linkElement = document.createElement("a");
+    linkElement.href = "/" + this.output().trim();
+
+    this.display
+      .filter((node) => node && typeof node.render === "function")
+      .forEach((node) => node.render({ container: linkElement, navigate }));
+
+    linkElement.addEventListener("click", (event) => {
+      event.preventDefault();
+      this.navigateTo();
+    });
+
+    container.appendChild(linkElement);
+    return linkElement;
+  }
 }

@@ -4,7 +4,7 @@ import { convertSyntax } from "./convertSyntax.js";
 
 export function compile(text) {
     const lexed = lexer(text);
-    const parsed = parse(lexed);
-    const converted = convertSyntax(parsed);
-    return converted;
+    const converted = convertSyntax(lexed);
+    const parsed = parse(converted);
+    return parsed;
 }

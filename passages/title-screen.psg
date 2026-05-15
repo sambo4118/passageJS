@@ -1,0 +1,55 @@
+PASSAGEJS TITLE SCREEN - INLINE TEST MATRIX
+
+If this line renders, base text rendering is working.
+
+SECTION 1: INLINE MARKDOWN ONLY
+Expected: inline markdown works per line.
+This has **bold**, *italic*, and `inline code`.
+This has nested inline emphasis like **bold and *italic***.
+
+SECTION 2: NEWLINE RENDERING
+Expected: each line below is separated visually.
+line A
+line B
+line C
+
+SECTION 3: ESCAPED SPECIAL TOKENS
+Expected: escaped chars print literally.
+\@not-a-tag
+\[literal brackets\]
+\{literal braces\}
+\$not-a-var-ref
+
+SECTION 4: VAR TAG BASIC
+Expected: var nodes parse without crashing.
+@var(playerName){Sam}
+@var(score){42}
+@var(status){ready}
+
+SECTION 5: NESTED TAG CONTENT
+Expected: nested structures parse and render in container order.
+@if(@var(flag){on}){
+Inside IF body line one.
+Inside IF body line two with **inline emphasis**.
+}
+
+SECTION 6: CUSTOM LINK SYNTAX
+Expected: links become clickable nodes.
+[Go to title again|title-screen]
+[Self route|title-screen]
+[Broken route test|missing-slug]
+
+SECTION 7: MIXED CONTENT
+Expected: text + tag + text + link render in sequence.
+Hello @var(user){Sam}, click [next|title-screen] to rerender this passage.
+
+SECTION 8: STRESS LINES
+Expected: no traversal crashes on many nodes.
+@var(a){A}
+@var(b){B}
+@var(c){C}
+@if(@var(toggle){1}){Toggled content}
+@if(@var(toggle){0}){Untoggled content}
+[A to B|title-screen] [B to C|title-screen] [C to A|title-screen]
+
+END OF INLINE TEST MATRIX

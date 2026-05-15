@@ -26,7 +26,8 @@ export function convertSyntax(tokens) {
         state = {tokens, index};
 
         if (token.type === "backslash") {
-            result.push({type: "text", value: convertToText(tokens[index + 1])});
+            const nextToken = tokens[index + 1];
+            result.push({type: "text", value: convertToText(nextToken)});
             index++;
             continue;
         }
@@ -49,20 +50,20 @@ export function convertSyntax(tokens) {
         }
 
         if (token.type === "backtick") {
-            while (tokens[index + 1].type !== "backtick") {
+            while (tokens[index + 1] && tokens[index + 1].type !== "backtick") {
                 index++;
                 result.push({type: "text", value: convertToText(tokens[index])});
             }
-            index++;
+            if (tokens[index + 1]?.type === "backtick") index++;
             continue;
         }
 
-        if (token.type === "openbraket") {
+        if (token.type === "openbracket") {
             let location = [];
             let display = [];
             let isLocation = false;
 
-            while (tokens[index + 1].type !== "closebraket") {
+            while (tokens[index + 1] && tokens[index + 1].type !== "closebracket") {
                 
                 if (tokens[index + 1].type === "pipe") {
                     isLocation = true;
@@ -78,17 +79,17 @@ export function convertSyntax(tokens) {
             }
 
             result.push({type: "link", location: convertSyntax(location), display: convertSyntax(display)});
-            index++;
+            if (tokens[index + 1]?.type === "closebracket") index++;
             continue;
         }
 
         if (token.type === "dollar") {
             let variableName = "";
-            while (tokens[index + 1].type === "openbracket") {
+            while (tokens[index + 1] && tokens[index + 1].type === "openbracket") {
                 index++;
                 variableName += convertToText(tokens[index]);
             }
-            result.push({type: "variableRef", value: convertToText(token)});
+            result.push({type: "varreference", value: [{type: "text", value: variableName}]});
         }
     }
 
@@ -97,37 +98,60 @@ export function convertSyntax(tokens) {
 
 function convertAt(state) {
     let {tokens, index} = state;
-    const token = tokens[index];
     const result = {type: "at"};
-    const trimtoken = () => { if (tokens[index + 1].type === "text" && tokens[index + 1].value.trim() === "") index++; };
+    const trimtoken = () => {
+        if (tokens[index + 1]?.type === "text" && tokens[index + 1].value.trim() === "") index++;
+    };
 
-    if (tokens[index + 1].type === "text" && !tokens[index + 1].value.trim().includes(" ")) {
+    if (tokens[index + 1]?.type === "text" && !tokens[index + 1].value.trim().includes(" ")) {
         result.name = tokens[index + 1].value.trim();
         index++;
     } else {
         result.name = false;
     }
 
-    if (tokens[index + 1].type === "openparenthesis") {
+    if (tokens[index + 1]?.type === "openparenthesis") {
         index++;
         const tempLex = [];
-        while (tokens[index + 1].type !== "closeparenthesis") {
-            tempLex.push(tokens[index + 1]);
+        let depth = 1;
+        while (tokens[index + 1] && depth > 0) {
+            const nextToken = tokens[index + 1];
+            if (nextToken.type === "openparenthesis") depth++;
+            if (nextToken.type === "closeparenthesis") {
+                depth--;
+                if (depth === 0) {
+                    index++;
+                    break;
+                }
+            }
+            if (depth > 0) tempLex.push(nextToken);
             index++;
         }
+        if (depth !== 0) return {result: {type: "text", value: "@" + (result.name || "")}, index};
         result.args = convertSyntax(tempLex);
     } else {
         result.args = false;
     }
 
     trimtoken();
-    if (tokens[index + 1].type === "openbrace") {
-        index += 2;
+    if (tokens[index + 1]?.type === "openbrace") {
+        index++;
         const tempLex = [];
-        while (tokens[index + 1].type !== "closebrace") {
-            tempLex.push(tokens[index + 1]);
+        let depth = 1;
+        while (tokens[index + 1] && depth > 0) {
+            const nextToken = tokens[index + 1];
+            if (nextToken.type === "openbrace") depth++;
+            if (nextToken.type === "closebrace") {
+                depth--;
+                if (depth === 0) {
+                    index++;
+                    break;
+                }
+            }
+            if (depth > 0) tempLex.push(nextToken);
             index++;
         }
+        if (depth !== 0) return {result: {type: "text", value: "@" + (result.name || "")}, index};
         result.body = convertSyntax(tempLex);
     } else {
         result.body = false;

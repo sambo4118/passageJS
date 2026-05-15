@@ -13,4 +13,8 @@ export class Text {
         container.appendChild(textElement);
         return textElement;
     }
+
+    output() {
+        return this.text;
+    }
 }

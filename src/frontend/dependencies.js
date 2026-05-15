@@ -1,11 +1,11 @@
 export function linkDependencies(nodes) {
     const varMap = new Map();
 
-    const walk = (node) => {
+    let walk = (node) => {
         if (node?.name === 'var') {
             varMap.set(node, node);
         }
-        Object.values(nnode || {}).forEach(v => {
+        Object.values(node || {}).forEach(v => {
             if (Array.isArray(v)) v.forEach(walk);
             else if (v?.name) walk(v);
         });
